@@ -15,6 +15,10 @@ export default function Home() {
     const [newTaskTags, setNewTaskTags] = useState<string[]>([]);
 
     function addNewTask() {
+        if (!newTaskName) {
+            return;
+        }
+
         setTasks([
             ...tasks,
             {
@@ -54,6 +58,10 @@ export default function Home() {
     }
 
     function addTag(newTag: string) {
+        if (!newTag || newTaskTags.includes(newTag)) {
+            return;
+        }
+
         const newTags = [...newTaskTags, newTag];
 
         setNewTaskTags(newTags);
@@ -66,31 +74,42 @@ export default function Home() {
     }
 
     return (
-        <main style={{ minWidth: '1vh' }}>
+        <main className="max-w-md">
             <form>
-                {
-                    // onKeyDown={(ev) => ev.code === 'Enter' && addNewTask()}>
-                }
                 <input
+                    className="border border-gray-400 px-2 py-1"
                     type="text"
                     value={newTaskName}
                     onChange={(ev) => setNewTaskName(ev.currentTarget.value)}
+                    placeholder="What needs to be done?"
                 />
 
-                <div>
+                <div className="flex my-2">
                     {newTaskTags.map((tag, i) => (
-                        <div key={i}>
-                            <span onClick={() => removeTag(tag)}>
-                                <b>X</b>
+                        <div
+                            key={i}
+                            className="flex gap-2 px-3 py-2 border rounded-md border-blue-400 bg-blue-200"
+                        >
+                            <span>{tag}</span>
+
+                            <span
+                                className="font-bold cursor-pointer"
+                                onClick={() => removeTag(tag)}
+                            >
+                                X
                             </span>
-                            {tag}
                         </div>
                     ))}
                 </div>
 
                 <TagSelect onSelection={addTag} />
 
-                <button type="button" onClick={() => addNewTask()}>
+                <button
+                    className="border disabled:bg-emerald-300 disabled:text-neutral-700 disabled:cursor-not-allowed border-teal-900 px-2 py-1 bg-emerald-500"
+                    type="button"
+                    onClick={() => addNewTask()}
+                    disabled={!newTaskName.length}
+                >
                     Create new Task
                 </button>
             </form>
