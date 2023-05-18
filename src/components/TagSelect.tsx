@@ -40,7 +40,6 @@ export default function TagSelect({ onSelection }: TagSelectProps) {
     return (
         <div className="flex flex-col gap-3">
             <div className="flex gap-2 items-center">
-                <span>Select a Tag:</span>
                 <select
                     id="tag-select"
                     className="grow border border-gray-400 px-2 py-1"
@@ -56,7 +55,7 @@ export default function TagSelect({ onSelection }: TagSelectProps) {
             </div>
 
             <div className="flex gap-2 items-center whitespace-nowrap flex-wrap justify-end">
-                <span>Or create a new one:</span>
+                <span>Create a new one:</span>
 
                 <input
                     id="tag-name"
@@ -69,7 +68,7 @@ export default function TagSelect({ onSelection }: TagSelectProps) {
                 />
 
                 <button
-                    className="border border-gray-400 px-2 py-1"
+                    className="border rounded cursor-pointer border-gray-400 bg-green-400 px-2 py-1"
                     type="button"
                     onClick={createTag}
                     disabled={!newTag.trim().length}
