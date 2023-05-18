@@ -74,15 +74,21 @@ export default function Home() {
     }
 
     return (
-        <main className="max-w-md">
+        <main className="max-w-md mx-auto">
             <form>
-                <input
-                    className="border border-gray-400 px-2 py-1"
-                    type="text"
-                    value={newTaskName}
-                    onChange={(ev) => setNewTaskName(ev.currentTarget.value)}
-                    placeholder="What needs to be done?"
-                />
+                <div className="flex gap-2 flex-col">
+                    <span>What needs to be done?</span>
+
+                    <input
+                        className="border border-gray-400 px-2 py-1"
+                        type="text"
+                        value={newTaskName}
+                        onChange={(ev) =>
+                            setNewTaskName(ev.currentTarget.value)
+                        }
+                        placeholder="Watch an anime"
+                    />
+                </div>
 
                 <div className="flex my-2">
                     {newTaskTags.map((tag, i) => (
@@ -102,6 +108,7 @@ export default function Home() {
                     ))}
                 </div>
 
+                <span>Add Tags to the Task</span>
                 <TagSelect onSelection={addTag} />
 
                 <button
@@ -114,7 +121,8 @@ export default function Home() {
                 </button>
             </form>
 
-            <ul>
+            <h2>Task list</h2>
+            <ul className="pt-2">
                 {tasks.map((task, i) => (
                     <li key={i}>
                         <input
@@ -125,10 +133,19 @@ export default function Home() {
                         <input
                             type="text"
                             value={task.name}
+                            className="px-2 py-1"
                             onChange={(ev) =>
                                 changeTaskName(task.id, ev.currentTarget.value)
                             }
                         />
+
+                        <ul className="ms-4 flex">
+                            {task.tags.map((tag) => (
+                                <li className="border border-neutra-400 rounded bg-amber-300 px-2 m-1">
+                                    {tag}
+                                </li>
+                            ))}
+                        </ul>
                     </li>
                 ))}
             </ul>
