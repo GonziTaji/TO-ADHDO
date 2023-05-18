@@ -3,12 +3,14 @@ import { TaskList } from '@/components/TasksList';
 import { Task } from '@/types';
 import { useState } from 'react';
 
-export default function Home() {
+export default async function Home() {
     const [tasks, setTasks] = useState<Task[]>([]);
 
     function addTask(newTask: Task) {
         setTasks([...tasks, newTask]);
     }
+
+    return <p>hehe</p>;
 
     return (
         <main className="max-w-md mx-auto">
