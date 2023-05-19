@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { Suspense, useState, useTransition } from 'react';
 import TagSelect from './TagSelect';
 import { Tag } from '@/prismaUtils';
 import { useRouter } from 'next/navigation';
@@ -12,12 +12,18 @@ export default function TaskForm({ tags }: TaskFormProps) {
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskTags, setNewTaskTags] = useState<Tag[]>([]);
 
+    const [isPending, startTransition] = useTransition();
+    const [isFetching, setIsFetching] = useState(false);
+    const isMutating = isFetching || isPending;
+
     const router = useRouter();
 
-    function addNewTask() {
+    async function addNewTask() {
         if (!newTaskName) {
             return;
         }
+
+        setIsFetching(true);
 
         const newTask = {
             name: newTaskName,
@@ -25,16 +31,19 @@ export default function TaskForm({ tags }: TaskFormProps) {
             user_id: 1,
         };
 
-        fetch('/api/tasks', {
+        await fetch('/api/tasks', {
             method: 'POST',
             body: JSON.stringify(newTask),
-        }).then((response) => {
-            console.log('response', response);
+        });
+
+        startTransition(() => {
             router.refresh();
         });
 
         setNewTaskName('');
         setNewTaskTags([]);
+
+        setIsFetching(false);
     }
 
     function addTag(tagId: number) {
@@ -66,6 +75,10 @@ export default function TaskForm({ tags }: TaskFormProps) {
         const newTags = newTaskTags.filter((t) => t.id !== tagId);
 
         setNewTaskTags(newTags);
+    }
+
+    if (isMutating) {
+        return <p>Creating task...</p>;
     }
 
     return (

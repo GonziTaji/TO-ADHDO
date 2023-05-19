@@ -1,5 +1,6 @@
 import { Tag } from '@/prismaUtils';
-import { ChangeEvent, KeyboardEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ChangeEvent, KeyboardEvent, useState, useTransition } from 'react';
 
 interface TagSelectProps {
     onSelection: (tagId: number) => void;
@@ -9,17 +10,40 @@ interface TagSelectProps {
 export default function TagSelect({ onSelection, tags }: TagSelectProps) {
     const [newTag, setNewTag] = useState('');
 
+    const [isPending, startTransition] = useTransition();
+    const [isFetching, setIsFetching] = useState(false);
+    const isMutating = isFetching || isPending;
+
+    const router = useRouter();
+
     async function createTag() {
-        // if (!newTag) {
-        //     return;
-        // }
-        // if (!tags.includes(newTag)) {
-        //     setKnownTags([...tags, newTag]);
-        // } else {
-        //     alert(`Tag "${newTag}" already exist!`);
-        // }
-        // onSelection(newTag);
-        // setNewTag('');
+        if (!newTag) {
+            return;
+        }
+
+        setIsFetching(true);
+
+        const tagFound = tags.find((t) => t.name === newTag);
+
+        if (!tagFound) {
+            await fetch('/api/tags', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: newTag,
+                    user_id: 1,
+                }),
+            });
+
+            startTransition(() => {
+                router.refresh();
+            });
+        } else {
+            alert(`Tag "${newTag}" already exist!`);
+        }
+
+        setIsFetching(false);
+
+        setNewTag('');
     }
 
     function onKeyDownInput(ev: KeyboardEvent) {
@@ -34,6 +58,10 @@ export default function TagSelect({ onSelection, tags }: TagSelectProps) {
         if (!isNaN(value)) {
             onSelection(value);
         }
+    }
+
+    if (isMutating) {
+        return <p>Creating tag...</p>;
     }
 
     return (

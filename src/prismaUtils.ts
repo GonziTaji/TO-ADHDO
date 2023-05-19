@@ -1,11 +1,17 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+declare global {
+    var prisma: PrismaClient | undefined;
+}
+
+export const prisma = global.prisma || new PrismaClient();
+
+if (process.env.NODE_ENV === 'development') global.prisma = prisma;
 
 export async function getTasksWithTagsOfUser(user_id: number) {
     const tasks = await prisma.tasks.findMany({
         include: { Tags: true },
-        where: { user_id: 1 },
+        where: { user_id },
     });
 
     return tasks;
@@ -13,7 +19,7 @@ export async function getTasksWithTagsOfUser(user_id: number) {
 
 export async function getTagsOfUser(user_id: number) {
     const tags = await prisma.tags.findMany({
-        where: { user_id: 1 },
+        where: { user_id },
     });
 
     return tags;

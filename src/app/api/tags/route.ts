@@ -13,23 +13,18 @@ export async function POST(request: Request) {
         });
     }
 
-    const tagsIds: number[] = Array.isArray(body.tags) ? body.tags : [];
-
     try {
-        const tasksResponse = await prisma.tasks.create({
+        const tagsResponse = await prisma.tags.create({
             data: {
                 name: body.name,
                 user_id: body.user_id,
-                Tags: {
-                    connect: tagsIds.map((id) => ({ id })),
-                },
             },
         });
 
-        console.log(tasksResponse);
+        console.log(tagsResponse);
 
         return new NextResponse(
-            JSON.stringify({ ok: true, data: tasksResponse })
+            JSON.stringify({ ok: true, data: tagsResponse })
         );
     } catch (error) {
         return new NextResponse(JSON.stringify({ error }), { status: 500 });
