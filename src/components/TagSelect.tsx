@@ -1,110 +1,108 @@
-import { KeyboardEvent, useState } from 'react';
-
-export interface SelectOption {
-    label: string;
-    id: string;
-    hovered?: boolean;
-}
-
-const __tags: string[] = [];
+import { Tag } from '@/prismaUtils';
+import { useRouter } from 'next/navigation';
+import { ChangeEvent, KeyboardEvent, useState, useTransition } from 'react';
 
 interface TagSelectProps {
-    onSelection: (selectedId: string) => void;
+    onSelection: (tagId: number) => void;
+    tags: Tag[];
 }
 
-export default function TagSelect({ onSelection }: TagSelectProps) {
-    const [knownTags, setKnownTags] = useState<string[]>(__tags);
+export default function TagSelect({ onSelection, tags }: TagSelectProps) {
     const [newTag, setNewTag] = useState('');
 
-    const [createMode, setCreateMode] = useState(false);
+    const [isPending, startTransition] = useTransition();
+    const [isFetching, setIsFetching] = useState(false);
+    const isMutating = isFetching || isPending;
+
+    const router = useRouter();
 
     async function createTag() {
         if (!newTag) {
             return;
         }
 
-        if (!knownTags.includes(newTag)) {
-            setKnownTags([...knownTags, newTag]);
+        setIsFetching(true);
+
+        const tagFound = tags.find((t) => t.name === newTag);
+
+        if (!tagFound) {
+            await fetch('/api/tags', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: newTag,
+                    user_id: 1,
+                }),
+            });
+
+            startTransition(() => {
+                router.refresh();
+            });
         } else {
             alert(`Tag "${newTag}" already exist!`);
         }
 
-        onSelection(newTag);
+        setIsFetching(false);
+
         setNewTag('');
-        setCreateMode(false);
     }
 
-    function toggleCreateMode() {
-        setCreateMode(!createMode);
+    function onKeyDownInput(ev: KeyboardEvent) {
+        if (ev.code === 'Enter') {
+            createTag();
+        }
+    }
+
+    function selectOnChange(ev: ChangeEvent<HTMLSelectElement>) {
+        const value = parseInt(ev.currentTarget.value);
+
+        if (!isNaN(value)) {
+            onSelection(value);
+        }
+    }
+
+    if (isMutating) {
+        return <p>Creating tag...</p>;
     }
 
     return (
-        <div className="">
-            {createMode ? (
-                <>
-                    <div className="flex flex-col">
-                        <label htmlFor="tag-name">Create a new Task</label>
-                        <input
-                            id="tag-name"
-                            className="border border-gray-400 px-2 py-1"
-                            type="text"
-                            value={newTag}
-                            onInput={(ev) => {
-                                setNewTag(ev.currentTarget.value);
-                            }}
-                            onKeyDown={(ev) =>
-                                ev.code === 'Enter' && createTag()
-                            }
-                            placeholder="food/cleaning/kitchen/etc"
-                        />
-                    </div>
+        <div className="flex flex-col gap-3">
+            <div className="flex gap-2 items-center">
+                <select
+                    id="tag-select"
+                    className="grow border border-gray-400 px-2 py-1"
+                    onChange={selectOnChange}
+                >
+                    <option value="">-- Select an option</option>
+                    {tags.map((tag, i) => (
+                        <option key={i} value={tag.id}>
+                            {tag.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
 
-                    <div className="flex gap-2">
-                        <button
-                            className="border border-gray-400 px-2 py-1"
-                            type="button"
-                            style={{ height: '28px', padding: '5px 3px' }}
-                            onClick={createTag}
-                            disabled={!newTag.trim().length}
-                        >
-                            Add new Tag
-                        </button>
+            <div className="flex gap-2 items-center whitespace-nowrap flex-wrap justify-end">
+                <span>Create a new one:</span>
 
-                        <button
-                            className="border border-gray-400 px-2 py-1"
-                            type="button"
-                            onClick={toggleCreateMode}
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </>
-            ) : (
-                <div className="flex flex-col gap-3">
-                    <label htmlFor="tag-select">
-                        Select tags for this Task
-                    </label>
-                    <select
-                        id="tag-select"
-                        onChange={(ev) => onSelection(ev.currentTarget.value)}
-                    >
-                        <option value="">Select a tag</option>
-                        {knownTags.map((tag, i) => (
-                            <option key={i} value={tag}>
-                                {tag}
-                            </option>
-                        ))}
-                    </select>
+                <input
+                    id="tag-name"
+                    className="grow border border-gray-400 px-2 py-1"
+                    type="text"
+                    value={newTag}
+                    onInput={(ev) => setNewTag(ev.currentTarget.value)}
+                    onKeyDown={onKeyDownInput}
+                    placeholder="food/cleaning/kitchen/etc"
+                />
 
-                    <button
-                        className="border border-gray-400 px-2 py-1"
-                        type="button"
-                        onClick={toggleCreateMode}
-                    >
-                        Create new Tag
-                    </button>
-                </div>
-            )}
+                <button
+                    className="border rounded cursor-pointer border-gray-400 bg-green-400 px-2 py-1"
+                    type="button"
+                    onClick={createTag}
+                    disabled={!newTag.trim().length}
+                >
+                    Add new Tag
+                </button>
+            </div>
         </div>
     );
 }
