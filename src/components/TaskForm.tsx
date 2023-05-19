@@ -1,13 +1,14 @@
+'use client';
 import { useState } from 'react';
-import TagSelect from '@/components/TagSelect';
+import TagSelect from './TagSelect';
 import { v4 as uuidv4 } from 'uuid';
 import { Task } from '@/types';
 
 interface TaskFormProps {
-    addTask: (task: Task) => void;
+    tags: any[];
 }
 
-export default function TaskForm({ addTask }: TaskFormProps) {
+export default function TaskForm({ tags }: TaskFormProps) {
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskTags, setNewTaskTags] = useState<string[]>([]);
 
@@ -16,12 +17,12 @@ export default function TaskForm({ addTask }: TaskFormProps) {
             return;
         }
 
-        addTask({
+        const newTag = {
             id: uuidv4(),
             name: newTaskName,
             tags: newTaskTags,
             completed: false,
-        });
+        };
 
         setNewTaskName('');
         setNewTaskTags([]);
@@ -79,7 +80,7 @@ export default function TaskForm({ addTask }: TaskFormProps) {
                 ))}
             </div>
 
-            <TagSelect onSelection={addTag} />
+            <TagSelect onSelection={addTag} tags={tags.map((t) => t.name)} />
 
             <button
                 className="border rounded cursor-pointer disabled:bg-green-300 disabled:text-neutral-700 disabled:cursor-not-allowed border-teal-900 px-2 py-1 bg-emerald-500"

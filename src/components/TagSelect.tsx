@@ -10,19 +10,21 @@ const __tags: string[] = [];
 
 interface TagSelectProps {
     onSelection: (selectedId: string) => void;
+    tags: string[];
 }
 
-export default function TagSelect({ onSelection }: TagSelectProps) {
-    const [knownTags, setKnownTags] = useState<string[]>(__tags);
+export default function TagSelect({ onSelection, tags }: TagSelectProps) {
     const [newTag, setNewTag] = useState('');
+
+    function setKnownTags(p: any) {}
 
     async function createTag() {
         if (!newTag) {
             return;
         }
 
-        if (!knownTags.includes(newTag)) {
-            setKnownTags([...knownTags, newTag]);
+        if (!tags.includes(newTag)) {
+            setKnownTags([...tags, newTag]);
         } else {
             alert(`Tag "${newTag}" already exist!`);
         }
@@ -46,7 +48,7 @@ export default function TagSelect({ onSelection }: TagSelectProps) {
                     onChange={(ev) => onSelection(ev.currentTarget.value)}
                 >
                     <option value="">-- </option>
-                    {knownTags.map((tag, i) => (
+                    {tags.map((tag, i) => (
                         <option key={i} value={tag}>
                             {tag}
                         </option>
