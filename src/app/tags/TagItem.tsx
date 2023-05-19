@@ -53,28 +53,34 @@ export default function TagItem({ tag }: TagItemProps) {
     }
 
     const componentBody = isEditMode ? (
-        <div className="grid gap-2" style={{ gridTemplateColumns: '1fr auto' }}>
+        <div className="flex px-2">
             <TagForm
                 userId={1}
                 tagId={tag.id}
                 tagName={tag.name}
                 onSubmit={toggleEditMode}
             />
+
             <button
                 type="button"
-                className="grow-0 cursor-pointer text-rose-900 bg-red-200 rounded px-3 border border-slate-400"
+                className="cursor-pointer text-rose-900 bg-red-200 rounded px-3 border border-slate-400"
                 onClick={toggleEditMode}
             >
                 Cancel
             </button>
         </div>
     ) : (
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
-            <span>{tag.name}</span>
-
+        <div
+            className="grid px-4 py-1 "
+            style={{ gridTemplateColumns: '1fr auto' }}
+        >
             <span>
-                Present in {tag.task_count} task
-                {tag.task_count !== 1 && 's'}
+                {tag.name}
+
+                <small className="block">
+                    Present in {tag.task_count} task
+                    {tag.task_count !== 1 && 's'}
+                </small>
             </span>
 
             <div className="flex gap-2">
@@ -97,9 +103,5 @@ export default function TagItem({ tag }: TagItemProps) {
         </div>
     );
 
-    return (
-        <div className="px-4 py-1 border-b border-slate-500">
-            {componentBody}
-        </div>
-    );
+    return <div className="border-b border-slate-500">{componentBody}</div>;
 }

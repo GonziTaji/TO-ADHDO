@@ -70,7 +70,7 @@ export default function TagForm({
     }
 
     return (
-        <div className="flex gap-2 items-center">
+        <div className="inline-flex gap-2 items-center">
             <input
                 id="tag-name"
                 className="grow border border-gray-400 px-2 py-1"
@@ -83,7 +83,7 @@ export default function TagForm({
             />
 
             <button
-                className="inline-flex items-center gap-3 border rounded cursor-pointer disabled:cursor-not-allowed disabled:bg-green-100 disabled:text-gray-400 border-gray-400 bg-green-400 px-2 py-1"
+                className="inline-flex whitespace-nowrap items-center gap-3 border rounded cursor-pointer disabled:cursor-not-allowed disabled:bg-green-100 disabled:text-gray-400 border-gray-400 bg-green-400 px-2 py-1"
                 type="button"
                 onClick={saveChanges}
                 disabled={isMutating || !newTagName.trim().length}
