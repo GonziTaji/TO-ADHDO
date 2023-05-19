@@ -1,45 +1,69 @@
 'use client';
 import { useState } from 'react';
 import TagSelect from './TagSelect';
-import { v4 as uuidv4 } from 'uuid';
-import { Task } from '@/types';
+import { Tag } from '@/prismaUtils';
+import { useRouter } from 'next/navigation';
 
 interface TaskFormProps {
-    tags: any[];
+    tags: Tag[];
 }
 
 export default function TaskForm({ tags }: TaskFormProps) {
     const [newTaskName, setNewTaskName] = useState('');
-    const [newTaskTags, setNewTaskTags] = useState<string[]>([]);
+    const [newTaskTags, setNewTaskTags] = useState<Tag[]>([]);
+
+    const router = useRouter();
 
     function addNewTask() {
         if (!newTaskName) {
             return;
         }
 
-        const newTag = {
-            id: uuidv4(),
+        const newTask = {
             name: newTaskName,
-            tags: newTaskTags,
-            completed: false,
+            tags: newTaskTags.map((t) => t.id),
+            user_id: 1,
         };
+
+        fetch('/api/tasks', {
+            method: 'POST',
+            body: JSON.stringify(newTask),
+        }).then((response) => {
+            console.log('response', response);
+            router.refresh();
+        });
 
         setNewTaskName('');
         setNewTaskTags([]);
     }
 
-    function addTag(newTag: string) {
-        if (!newTag || newTaskTags.includes(newTag)) {
+    function addTag(tagId: number) {
+        if (!tagId) {
             return;
         }
 
-        const newTags = [...newTaskTags, newTag];
+        let tag = newTaskTags.find((t) => t.id === tagId);
+
+        if (tag) {
+            // tag already selected
+            return;
+        }
+
+        tag = tags.find((t) => t.id === tagId);
+
+        if (!tag) {
+            // tag doesn't exist
+            alert("Tag selected doesn't exist. Please try again");
+            return;
+        }
+
+        const newTags = [...newTaskTags, tag];
 
         setNewTaskTags(newTags);
     }
 
-    function removeTag(tag: string) {
-        const newTags = newTaskTags.filter((t) => t !== tag);
+    function removeTag(tagId: number) {
+        const newTags = newTaskTags.filter((t) => t.id !== tagId);
 
         setNewTaskTags(newTags);
     }
@@ -68,11 +92,11 @@ export default function TaskForm({ tags }: TaskFormProps) {
                         key={i}
                         className="flex gap-2 px-3 py-2 border rounded-md border-blue-400 bg-blue-200"
                     >
-                        <span>{tag}</span>
+                        <span>{tag.name}</span>
 
                         <span
                             className="font-bold cursor-pointer"
-                            onClick={() => removeTag(tag)}
+                            onClick={() => removeTag(tag.id)}
                         >
                             X
                         </span>
@@ -80,7 +104,7 @@ export default function TaskForm({ tags }: TaskFormProps) {
                 ))}
             </div>
 
-            <TagSelect onSelection={addTag} tags={tags.map((t) => t.name)} />
+            <TagSelect onSelection={addTag} tags={tags} />
 
             <button
                 className="border rounded cursor-pointer disabled:bg-green-300 disabled:text-neutral-700 disabled:cursor-not-allowed border-teal-900 px-2 py-1 bg-emerald-500"

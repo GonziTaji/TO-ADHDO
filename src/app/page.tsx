@@ -1,67 +1,53 @@
 import TaskForm from '@/components/TaskForm';
 import { TaskList } from '@/components/TasksList';
-import { Task } from '@/types';
-import { PrismaClient } from '@prisma/client';
-console.log('in file');
+import { Tags } from '@prisma/client';
+import {
+    TaskWithTags,
+    getTagsOfUser,
+    getTasksWithTagsOfUser,
+} from '@/prismaUtils';
+
+const user_id = 1;
+
 async function getTasks() {
-    console.log('in get tasks');
-    const prisma = new PrismaClient();
-
     try {
-        const tasks = await prisma.tasks.findMany({
-            include: { Tags: true },
-            where: { user_id: 1 },
-        });
-
-        console.log(tasks);
+        const tasks = await getTasksWithTagsOfUser(user_id);
 
         return { tasks };
     } catch (error) {
-        return { error, tasks: [] as Task[] };
+        return { error, tasks: [] as TaskWithTags[] };
     }
 }
 
 async function getTags() {
-    const prisma = new PrismaClient();
-
     try {
-        const tags: any[] = await prisma.tags.findMany({
-            where: { user_id: 1 },
-        });
-
-        console.log(tags);
+        const tags = await getTagsOfUser(user_id);
 
         return { tags };
     } catch (error) {
-        return { error, tags: [] as any[] };
+        return { error, tags: [] as Tags[] };
     }
 }
 
 export default async function Home() {
-    return <p>i work</p>;
     const { tasks, error: taskError } = await getTasks();
-    // const { tags, error: tagError } = await getTags();
+    const { tags, error: tagError } = await getTags();
 
     if (taskError) {
         console.error(taskError);
     }
 
-    // if (tagError) {
-    //     console.error(tagError);
-    // }
-
-    function addTask(newTask: Task) {
-        // setTasks([...tasks, newTask]);
-        console.log(newTask);
+    if (tagError) {
+        console.error(tagError);
     }
 
     return (
         <main className="max-w-md mx-auto">
-            <TaskForm tags={[]} />
+            <TaskForm tags={tags} />
 
             <br />
 
-            <TaskList tasks={tasks as any} />
+            <TaskList tasks={tasks} />
         </main>
     );
 }

@@ -1,4 +1,4 @@
-insert into "Users" (username, created_on) values ('Yoghurt', now());
+insert into "Users" (username, created_at) values ('Yoghurt', now());
 
 insert into "Tags"
 (user_id, name)

@@ -1,6 +1,6 @@
-import { Task } from '@/types';
+import { TaskWithTags } from '@/prismaUtils';
 
-export function TaskList({ tasks }: { tasks: Task[] }) {
+export function TaskList({ tasks }: { tasks: TaskWithTags[] }) {
     return (
         <div className="">
             <h2>Task list</h2>
@@ -10,13 +10,16 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
                         <span className="px-2 py-1">{task.name}</span>
 
                         <ul className="ms-4 flex">
-                            {task.tags.map((tag) => (
-                                <li className="border border-rose-400 rounded bg-amber-300 px-2 m-1">
-                                    {tag}
+                            {task.Tags.map((tag) => (
+                                <li
+                                    key={tag.id}
+                                    className="border border-rose-400 rounded bg-amber-300 px-2 m-1"
+                                >
+                                    {tag.name}
                                 </li>
                             ))}
 
-                            {!task.tags.length && (
+                            {!task.Tags.length && (
                                 <li className="border border-rose-300 rounded bg-amber-200 text-gray-600 px-2 m-1">
                                     No tags
                                 </li>

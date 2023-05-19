@@ -1,41 +1,38 @@
-import { KeyboardEvent, useState } from 'react';
-
-export interface SelectOption {
-    label: string;
-    id: string;
-    hovered?: boolean;
-}
-
-const __tags: string[] = [];
+import { Tag } from '@/prismaUtils';
+import { ChangeEvent, KeyboardEvent, useState } from 'react';
 
 interface TagSelectProps {
-    onSelection: (selectedId: string) => void;
-    tags: string[];
+    onSelection: (tagId: number) => void;
+    tags: Tag[];
 }
 
 export default function TagSelect({ onSelection, tags }: TagSelectProps) {
     const [newTag, setNewTag] = useState('');
 
-    function setKnownTags(p: any) {}
-
     async function createTag() {
-        if (!newTag) {
-            return;
-        }
-
-        if (!tags.includes(newTag)) {
-            setKnownTags([...tags, newTag]);
-        } else {
-            alert(`Tag "${newTag}" already exist!`);
-        }
-
-        onSelection(newTag);
-        setNewTag('');
+        // if (!newTag) {
+        //     return;
+        // }
+        // if (!tags.includes(newTag)) {
+        //     setKnownTags([...tags, newTag]);
+        // } else {
+        //     alert(`Tag "${newTag}" already exist!`);
+        // }
+        // onSelection(newTag);
+        // setNewTag('');
     }
 
     function onKeyDownInput(ev: KeyboardEvent) {
         if (ev.code === 'Enter') {
             createTag();
+        }
+    }
+
+    function selectOnChange(ev: ChangeEvent<HTMLSelectElement>) {
+        const value = parseInt(ev.currentTarget.value);
+
+        if (!isNaN(value)) {
+            onSelection(value);
         }
     }
 
@@ -45,12 +42,12 @@ export default function TagSelect({ onSelection, tags }: TagSelectProps) {
                 <select
                     id="tag-select"
                     className="grow border border-gray-400 px-2 py-1"
-                    onChange={(ev) => onSelection(ev.currentTarget.value)}
+                    onChange={selectOnChange}
                 >
-                    <option value="">-- </option>
+                    <option value="">-- Select an option</option>
                     {tags.map((tag, i) => (
-                        <option key={i} value={tag}>
-                            {tag}
+                        <option key={i} value={tag.id}>
+                            {tag.name}
                         </option>
                     ))}
                 </select>

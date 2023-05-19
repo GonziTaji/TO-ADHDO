@@ -1,5 +1,9 @@
-import { Task } from '@/types';
 import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+export async function GET(request: Request) {
+    return new NextResponse(JSON.stringify({ hola: 'mundo' }));
+}
 
 export async function POST(request: Request) {
     const body = await request.json();
@@ -13,26 +17,24 @@ export async function POST(request: Request) {
         );
     }
 
-    const client = await db.connect();
+    const prisma = new PrismaClient();
+    const tagsIds: number[] = Array.isArray(body.tags) ? body.tags : [];
 
     try {
-        const tasksResponse =
-            await client.sql`INSERT INTO TASKS (user_id, name) values (${1}, ${
-                body.name
-            }) returning task_id`;
+        const tasksResponse = await prisma.tasks.create({
+            data: {
+                name: body.name,
+                user_id: body.user_id,
+                Tags: {
+                    connect: tagsIds.map((id) => ({ id })),
+                },
+            },
+        });
 
         console.log(tasksResponse);
 
-        const [{ task_id }] = tasksResponse.rows;
-
-        if (Array.isArray(body.tags) && body.tags.length) {
-            const tagsResponse =
-                await client.sql`INSERT INTO TAGS (user_id, task_id, name) values
-            ${body.tags.map((tag: string) => `(1, ${task_id}, ${tag}),`)}`;
-        }
-
-        return JSON.stringify({ ok: true });
+        return new NextResponse(JSON.stringify({ ok: true }));
     } catch (error) {
-        return { error, tasks: [] as Task[] };
+        return new NextResponse(JSON.stringify({ error }), { status: 500 });
     }
 }
