@@ -28,9 +28,7 @@ export async function POST(request: Request) {
 
         console.log(tasksResponse);
 
-        return new NextResponse(
-            JSON.stringify({ ok: true, data: tasksResponse })
-        );
+        return NextResponse.json({ ok: true, data: tasksResponse });
     } catch (error) {
         return new NextResponse(JSON.stringify({ error }), { status: 500 });
     }
