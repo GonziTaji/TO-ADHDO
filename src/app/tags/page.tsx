@@ -1,5 +1,5 @@
 import { TagWithTaskCount, getTagsWithTaskCountOfUser } from '@/prismaUtils';
-import TagItem from './TagItem';
+import TagItemList from './TagItemList';
 import TagForm from '@/components/TagForm';
 
 async function getTags() {
@@ -25,7 +25,7 @@ export default async function Page() {
 
             <section>
                 {tags.map((tag) => (
-                    <TagItem key={tag.id} tag={tag} />
+                    <TagItemList key={tag.id} tag={tag} />
                 ))}
             </section>
         </div>

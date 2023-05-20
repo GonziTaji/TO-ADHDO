@@ -5,11 +5,11 @@ import { TagWithTaskCount } from '@/prismaUtils';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
-interface TagItemProps {
+interface TagItemListProps {
     tag: TagWithTaskCount;
 }
 
-export default function TagItem({ tag }: TagItemProps) {
+export default function TagItemList({ tag }: TagItemListProps) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isPending, startTransition] = useTransition();
     const isMutating = isDeleting || isPending;
