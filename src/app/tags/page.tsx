@@ -16,7 +16,8 @@ export default async function Page() {
     const { tags } = await getTags();
 
     return (
-        <div className="max-w-xl mx-auto">
+        <div>
+            <h1 className="text-2xl">Tags</h1>
             <section className="border border-rouned border-slate-400 p-4 my-2">
                 <h2>Create new tag</h2>
                 <TagForm userId={1} />

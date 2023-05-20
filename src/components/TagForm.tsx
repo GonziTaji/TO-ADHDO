@@ -70,10 +70,10 @@ export default function TagForm({
     }
 
     return (
-        <div className="inline-flex gap-2 items-center">
+        <div className="flex gap-2 items-center">
             <input
                 id="tag-name"
-                className="grow border border-gray-400 px-2 py-1"
+                className="grow min-w-0 border border-gray-400 px-2 py-1"
                 type="text"
                 value={newTagName}
                 onInput={(ev) => setNewTagName(ev.currentTarget.value)}
@@ -94,6 +94,7 @@ export default function TagForm({
     );
 }
 
+// https://flowbite.com/docs/components/spinner/
 function Spinner() {
     return (
         <div role="status">

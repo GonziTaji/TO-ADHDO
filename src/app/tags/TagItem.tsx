@@ -53,7 +53,7 @@ export default function TagItem({ tag }: TagItemProps) {
     }
 
     const componentBody = isEditMode ? (
-        <div className="flex px-2">
+        <div className="gap-2 px-4 py-1">
             <TagForm
                 userId={1}
                 tagId={tag.id}
@@ -63,19 +63,16 @@ export default function TagItem({ tag }: TagItemProps) {
 
             <button
                 type="button"
-                className="cursor-pointer text-rose-900 bg-red-200 rounded px-3 border border-slate-400"
+                className="mt-2 cursor-pointer text-rose-900 bg-red-200 rounded px-3 border border-slate-400"
                 onClick={toggleEditMode}
             >
                 Cancel
             </button>
         </div>
     ) : (
-        <div
-            className="grid px-4 py-1 "
-            style={{ gridTemplateColumns: '1fr auto' }}
-        >
-            <span>
-                {tag.name}
+        <div className="flex justify-between px-4 py-1">
+            <span className="whitespace-nowrap overflow-ellipsis overflow-hidden">
+                <span title={tag.name}>{tag.name}</span>
 
                 <small className="block">
                     Present in {tag.task_count} task
@@ -83,10 +80,10 @@ export default function TagItem({ tag }: TagItemProps) {
                 </small>
             </span>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
                 <button
                     type="button"
-                    className="cursor-pointer bg-indigo-200 rounded px-3 border border-slate-400"
+                    className="h-7 cursor-pointer bg-indigo-200 rounded px-3 border border-slate-400"
                     onClick={toggleEditMode}
                 >
                     Edit
@@ -94,7 +91,7 @@ export default function TagItem({ tag }: TagItemProps) {
 
                 <button
                     type="button"
-                    className="cursor-pointer text-rose-900 bg-red-200 rounded px-3 border border-slate-400"
+                    className="h-7 cursor-pointer text-rose-900 bg-red-200 rounded px-3 border border-slate-400"
                     onClick={deleteTag}
                 >
                     Delete

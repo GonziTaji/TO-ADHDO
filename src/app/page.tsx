@@ -42,7 +42,7 @@ export default async function Home() {
     }
 
     return (
-        <main className="max-w-md mx-auto">
+        <main>
             <TaskForm tags={tags} />
 
             <br />
