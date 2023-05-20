@@ -24,7 +24,9 @@ export async function POST(request: Request) {
         console.log(tagsResponse);
 
         return NextResponse.json({ ok: true, data: tagsResponse });
-    } catch (error) {
-        return new NextResponse(JSON.stringify({ error }), { status: 500 });
+    } catch (error: any) {
+        return new NextResponse(JSON.stringify({ error: error.toString() }), {
+            status: 500,
+        });
     }
 }
