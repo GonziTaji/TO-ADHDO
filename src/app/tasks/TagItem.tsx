@@ -6,7 +6,7 @@ import { useState, useTransition } from 'react';
 interface TagItemProps {
     taskId?: number;
     tag: Tags;
-    onDelete?: () => void;
+    onDelete?: (tagId: number) => void;
 }
 
 export default function TagItem({ taskId, tag, onDelete }: TagItemProps) {
@@ -18,14 +18,6 @@ export default function TagItem({ taskId, tag, onDelete }: TagItemProps) {
 
     async function deleteTag() {
         if (taskId) {
-            const confirmed = confirm(
-                `Do you really want to remove the tag "${tag.name}" from this task?`
-            );
-
-            if (!confirmed) {
-                return;
-            }
-
             setIsFetching(true);
 
             const url = `/api/tags_of_tasks?task_id=${taskId}&tag_id=${tag.id}`;
@@ -41,7 +33,7 @@ export default function TagItem({ taskId, tag, onDelete }: TagItemProps) {
         }
 
         if (onDelete) {
-            onDelete();
+            onDelete(tag.id);
         }
     }
 

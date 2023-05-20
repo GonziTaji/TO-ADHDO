@@ -1,6 +1,6 @@
 import { TagWithTaskCount, getTagsWithTaskCountOfUser } from '@/prismaUtils';
 import TagItemList from './TagItemList';
-import TagForm from '@/components/TagForm';
+import TagForm from './TagForm';
 
 async function getTags() {
     try {
@@ -18,7 +18,7 @@ export default async function Page() {
     return (
         <div>
             <h1 className="text-2xl">Tags</h1>
-            <section className="border border-rouned border-slate-400 p-4 my-2">
+            <section className="border border-slate-400 p-4 my-2">
                 <h2>Create new tag</h2>
                 <TagForm userId={1} />
             </section>

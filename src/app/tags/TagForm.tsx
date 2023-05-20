@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { KeyboardEvent, useState, useTransition } from 'react';
-import { Spinner } from './Spinner';
+import { Spinner } from '../../components/Spinner';
 
 interface TagFormProps {
     userId: number;

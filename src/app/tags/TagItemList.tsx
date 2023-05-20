@@ -1,6 +1,6 @@
 'use client';
 
-import TagForm from '@/components/TagForm';
+import TagForm from './TagForm';
 import { TagWithTaskCount } from '@/prismaUtils';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';

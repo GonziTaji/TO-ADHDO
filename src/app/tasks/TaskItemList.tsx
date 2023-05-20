@@ -4,9 +4,9 @@ import { TaskWithTags } from '@/prismaUtils';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import TagItem from './TagItem';
-import TagSelect from '@/components/TagSelect';
+import TagSelect from './TagSelect';
 import { Tags } from '@prisma/client';
-import { Spinner } from '@/components/Spinner';
+import TaskNameInput from './TaskNameInput';
 
 interface TaskItemProps {
     task: TaskWithTags;
@@ -15,13 +15,7 @@ interface TaskItemProps {
 
 export default function TaskItemList({ task, tags }: TaskItemProps) {
     const [isDeleting, setIsDeleting] = useState(false);
-    const [isAdding, setIsAdding] = useState(false);
     const [isDeletionPending, startDeletionTransition] = useTransition();
-    const [isAdditionPending, startAdditionTransition] = useTransition();
-
-    const isMutatingTag = isAdding || isAdditionPending;
-
-    const [isEditMode, setIsEditMode] = useState(false);
 
     const router = useRouter();
 
@@ -51,61 +45,22 @@ export default function TaskItemList({ task, tags }: TaskItemProps) {
         setIsDeleting(false);
     }
 
-    async function addTag(tagId: number) {
-        if (task.Tags.find(({ id }) => id === tagId)) {
-            return;
-        }
-
-        setIsAdding(true);
-
-        const url = `/api/tags_of_tasks?task_id=${task.id}&tag_id=${tagId}`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            body: JSON.stringify({
-                task_id: task.id,
-                tag_id: tagId,
-            }),
-        });
-
-        response.json().then(console.log);
-
-        startAdditionTransition(() => {
-            setIsAdding(false);
-            router.refresh();
-        });
-    }
-
-    function toggleEditMode() {
-        setIsEditMode(!isEditMode);
-    }
-
     if (isDeleting || isDeletionPending) {
         return <p>Deleting task...</p>;
     }
 
     return (
-        <div className="px-4 py-1 border-b border-slate-500">
-            <div className="flex justify-between">
-                <span>{task.name}</span>
+        <div>
+            <div className="flex gap-2 justify-between">
+                <TaskNameInput task={task} />
 
-                <div className="flex gap-2 items-center">
-                    <button
-                        type="button"
-                        className="h-7 cursor-pointer bg-indigo-200 rounded px-3 border border-slate-400"
-                        onClick={toggleEditMode}
-                    >
-                        Edit
-                    </button>
-
-                    <button
-                        type="button"
-                        className="h-7 cursor-pointer text-rose-900 bg-red-200 rounded px-3 border border-slate-400"
-                        onClick={deleteTask}
-                    >
-                        Delete
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    className="h-7 cursor-pointer text-rose-900 bg-red-200 rounded px-3 border border-slate-400"
+                    onClick={deleteTask}
+                >
+                    Delete
+                </button>
             </div>
 
             <ul className="flex flex-wrap gap-1 my-2">
@@ -121,15 +76,8 @@ export default function TaskItemList({ task, tags }: TaskItemProps) {
                     <TagItem key={tag.id} tag={tag} taskId={task.id} />
                 ))}
 
-                <div className="inline-flex gap-1 items-center">
-                    <div className="max-w-[7rem]">
-                        <TagSelect
-                            onSelection={addTag}
-                            tags={tags}
-                            disabled={isMutatingTag}
-                        />
-                    </div>
-                    {isMutatingTag && <Spinner />}
+                <div className="max-w-[7rem]">
+                    <TagSelect tags={tags} task={task} />
                 </div>
             </ul>
         </div>

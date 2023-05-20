@@ -1,12 +1,11 @@
-import TaskForm from '@/components/TaskForm';
-
 import {
     TaskWithTags,
     getTagsOfUser,
     getTasksWithTagsOfUser,
 } from '@/prismaUtils';
 import { Tags } from '@prisma/client';
-import { TaskList } from './TasksList';
+import NewTaskForm from './NewTaskForm';
+import TaskItemList from './TaskItemList';
 
 const user_id = 1;
 
@@ -44,12 +43,19 @@ export default async function Page() {
 
     return (
         <div>
-            <h1 className="text-2xl">Tasks</h1>
-            <TaskForm tags={tags} />
+            <h1 className="text-2xl">Task List</h1>
 
-            <br />
+            <section className="flex flex-col">
+                <div className="border border-slate-400 p-4 my-2">
+                    <NewTaskForm tags={tags} />
+                </div>
 
-            <TaskList tasks={tasks} tags={tags} />
+                {tasks.map((task, i) => (
+                    <div key={i} className="border-b border-slate-500 py-2">
+                        <TaskItemList task={task} tags={tags} />
+                    </div>
+                ))}
+            </section>
         </div>
     );
 }
