@@ -91,24 +91,28 @@ export default function NewTaskForm({ tags }: NewTaskFormProps) {
 
     return (
         <div>
+            <label htmlFor="task-name" className="mb-2 block">
+                Create a new Task
+            </label>
+
             <div className="flex gap-2 justify-between">
                 <input
-                    className="min-w-0"
+                    id="task-name"
+                    className="grow min-w-0 ps-2"
                     value={taskName}
                     onChange={inputOnChange}
                     disabled={isMutating}
+                    placeholder="What needs to be done?"
                 />
 
-                <div className="flex justify-end">
-                    <button
-                        className="inline-flex whitespace-nowrap items-center gap-3 border rounded cursor-pointer disabled:cursor-not-allowed disabled:bg-green-100 disabled:text-gray-400 border-gray-400 bg-green-400 px-2 py-1"
-                        type="button"
-                        onClick={() => createTask()}
-                        disabled={!taskName.length || isMutating}
-                    >
-                        Create new Task {isMutating && <Spinner />}
-                    </button>
-                </div>
+                <button
+                    className="inline-flex whitespace-nowrap items-center gap-3 border rounded cursor-pointer disabled:cursor-not-allowed disabled:bg-green-100 disabled:text-gray-400 border-gray-400 bg-green-400 px-2 py-1"
+                    type="button"
+                    onClick={() => createTask()}
+                    disabled={!taskName.length || isMutating}
+                >
+                    Save Task {isMutating && <Spinner />}
+                </button>
             </div>
 
             <ul className="flex flex-wrap gap-1 my-2 items-center">

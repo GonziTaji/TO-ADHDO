@@ -66,6 +66,10 @@ export default function TaskItemList({ task, tags }: TaskItemProps) {
             <ul className="flex flex-wrap gap-1 my-2">
                 <li>Tags: </li>
 
+                <li className="max-w-[7rem]">
+                    <TagSelect tags={tags} task={task} />
+                </li>
+
                 {!task.Tags.length && (
                     <li className="text-xs border rounded-full border-orange-100 bg-amber-100 text-gray-600 px-2 m-1">
                         No tags
@@ -75,10 +79,6 @@ export default function TaskItemList({ task, tags }: TaskItemProps) {
                 {task.Tags.map((tag) => (
                     <TagItem key={tag.id} tag={tag} taskId={task.id} />
                 ))}
-
-                <div className="max-w-[7rem]">
-                    <TagSelect tags={tags} task={task} />
-                </div>
             </ul>
         </div>
     );

@@ -43,18 +43,23 @@ export default async function Page() {
 
     return (
         <div>
-            <h1 className="text-2xl">Task List</h1>
+            <h1 className="text-2xl my-2">Task List</h1>
 
-            <section className="flex flex-col">
-                <div className="border border-slate-400 p-4 my-2">
+            <section className="flex flex-col gap-6">
+                <div className="border border-slate-400 p-4">
                     <NewTaskForm tags={tags} />
                 </div>
 
-                {tasks.map((task, i) => (
-                    <div key={i} className="border-b border-slate-500 py-2">
-                        <TaskItemList task={task} tags={tags} />
-                    </div>
-                ))}
+                <div className="border border-gray-400">
+                    {tasks.map((task, i) => (
+                        <div
+                            key={i}
+                            className="border-b last:border-0 border-slate-500 p-4"
+                        >
+                            <TaskItemList task={task} tags={tags} />
+                        </div>
+                    ))}
+                </div>
             </section>
         </div>
     );

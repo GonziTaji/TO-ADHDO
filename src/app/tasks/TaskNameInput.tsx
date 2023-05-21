@@ -23,7 +23,9 @@ export default function TaskNameInput({ task }: TaskNameInputProps) {
     }
 
     async function inputOnBlur() {
-        if (taskName.trim() === task.name) {
+        const trimmedName = taskName.trim();
+
+        if (!trimmedName || trimmedName === task.name) {
             return;
         }
 
@@ -45,11 +47,12 @@ export default function TaskNameInput({ task }: TaskNameInputProps) {
     return (
         <div className="contents">
             <input
-                className="min-w-0"
+                className="grow min-w-0 ps-2"
                 value={taskName}
                 onChange={inputOnChange}
                 onBlur={inputOnBlur}
                 disabled={isMutating}
+                placeholder={task.name}
             />
         </div>
     );
