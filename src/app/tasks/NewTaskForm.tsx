@@ -31,11 +31,6 @@ export default function NewTaskForm({ tags }: NewTaskFormProps) {
             return;
         }
 
-        if (!taskTags.length) {
-            alert('Add least one tag for this task');
-            return;
-        }
-
         setIsCreating(true);
 
         const newTask = {

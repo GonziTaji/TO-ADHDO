@@ -11,6 +11,7 @@ export const metadata = {
 
 const links = [
     { route: '/', label: 'Home' },
+    { route: '/todo_lists', label: 'To-Do Lists' },
     { route: '/tasks', label: 'Tasks' },
     { route: '/tags', label: 'Tags' },
 ];

@@ -13,11 +13,12 @@ datasource db {
 }
 
 model Users {
-  id         Int      @id @default(autoincrement())
-  username   String   @unique @db.VarChar(255)
-  created_at DateTime @default(now())
+  id         Int         @id @default(autoincrement())
+  username   String      @unique @db.VarChar(255)
+  created_at DateTime    @default(now())
   Tags       Tags[]
   Tasks      Tasks[]
+  TodoLists  TodoLists[]
 }
 
 model Tags {
@@ -31,11 +32,30 @@ model Tags {
 }
 
 model Tasks {
-  id      Int    @id @default(autoincrement())
-  user_id Int
-  name    String @db.VarChar(255)
-  owner   Users  @relation(fields: [user_id], references: [id])
-  Tags    Tags[]
+  id        Int                @id @default(autoincrement())
+  user_id   Int
+  name      String             @db.VarChar(255)
+  owner     Users              @relation(fields: [user_id], references: [id])
+  Tags      Tags[]
+  TodoLists TasksOnTodoLists[]
 
   @@unique([user_id, name])
+}
+
+model TodoLists {
+  id      Int                @id @default(autoincrement())
+  user_id Int
+  name    String             @db.VarChar(255)
+  owner   Users              @relation(fields: [user_id], references: [id])
+  Tasks   TasksOnTodoLists[]
+}
+
+model TasksOnTodoLists {
+  Task        Tasks     @relation(fields: [task_id], references: [id])
+  task_id     Int
+  TodoList    TodoLists @relation(fields: [todolist_id], references: [id])
+  todolist_id Int
+  completed   Boolean
+
+  @@id([task_id, todolist_id])
 }
