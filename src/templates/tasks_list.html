@@ -1,0 +1,12 @@
+{{ define "tasks_list" }}
+
+<ul>
+    {{ range . }}
+    <li class="task_list_item" data-task-id={{.Id}}>
+        <span>{{.Name}}</span>
+        <button class="delete_task_btn" data-task-id="{{.Id}}" type="button">Delete</button>
+    </li>
+    {{end}}
+</ul>
+
+{{ end }}

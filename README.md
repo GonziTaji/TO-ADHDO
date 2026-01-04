@@ -1,34 +1,17 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# TO-ADHDO
 
-## Getting Started
+## Description
 
-First, run the development server:
+This application is just a todo list with some features to organize and plan tasks
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+- Tasks are just an action name, description (optional) and with any number of tags
+- Tags are used to identify types or categories of tasks, like "spring cleaning", "travel preparations", etc
+- Lists of tasks (to-do lists) can be created with any number of tasks as a template to be started at any time
+- When a list of task is started, the "template" form of the task is untouched, and the user can add or remove tasks on the "live" list
+- Events are basically
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- The interface is a web site written in plain html/css/js
+- The backend is a go server with a rest api and routes for the web pages
+- The data is saved in an SQLite instance living where the server lives
