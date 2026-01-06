@@ -1,18 +1,18 @@
 CREATE TABLE if not exists task_tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-    deleted_at INTEGER NULL
+    name TEXT UNIQUE NOT NULL,
+    created_at TEXT DEFAULT current_timestamp NOT NULL,
+    updated_at TEXT DEFAULT current_timestamp NOT NULL,
+    deleted_at TEXT DEFAULT NULL
 );
 
 CREATE TABLE if not exists task_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     description TEXT,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-    deleted_at INTEGER NULL
+    created_at TEXT DEFAULT current_timestamp NOT NULL,
+    updated_at TEXT DEFAULT current_timestamp NOT NULL,
+    deleted_at TEXT DEFAULT NULL
 );
 
 CREATE TABLE if not exists task_template_task_tags (
@@ -35,9 +35,9 @@ CREATE TABLE if not exists list_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     description TEXT,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-    deleted_at INTEGER NULL
+    created_at TEXT DEFAULT current_timestamp NOT NULL,
+    updated_at TEXT DEFAULT current_timestamp NOT NULL,
+    deleted_at TEXT DEFAULT NULL
 );
 
 CREATE TABLE if not exists list_template_tasks (
@@ -61,13 +61,13 @@ CREATE TABLE if not exists active_lists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     list_template_id INTEGER NULL,
     name TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    deleted_at INTEGER NULL
+    created_at TEXT DEFAULT current_timestamp NOT NULL,
+    updated_at TEXT DEFAULT current_timestamp NOT NULL,
+    deleted_at TEXT DEFAULT NULL,
 
     FOREIGN KEY (list_template_id)
     REFERENCES list_templates(id)
-    ON DELETE CASCADE,
+    ON DELETE CASCADE
 );
 
 CREATE TABLE if not exists active_tasks (
@@ -81,9 +81,9 @@ CREATE TABLE if not exists active_tasks (
     completed INTEGER NOT NULL DEFAULT 0,
     position INTEGER NOT NULL,
 
-    created_at INTEGER NOT NULL,
-    completed_at INTEGER,
-    deleted_at INTEGER NULL
+    created_at TEXT DEFAULT current_timestamp NOT NULL,
+    completed_at TEXT DEFAULT current_timestamp,
+    deleted_at TEXT DEFAULT NULL,
 
     FOREIGN KEY (active_list_id)
     REFERENCES active_lists(id)

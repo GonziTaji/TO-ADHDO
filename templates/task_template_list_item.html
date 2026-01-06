@@ -1,0 +1,22 @@
+{{ define "task_template_list_item" }}
+
+<li class="task_template_list_item" data-task-template-id={{.Id}}>
+    <span>{{.Name}}</span>
+
+    <ul>
+        {{ range .Tags }}
+        <li data-tag-id={{.Id}}>
+            <ul>
+                {{range .Tags}}
+                <li>{{.Name}}</li>
+                {{end}}
+            </ul>
+            {{.Name}}
+        </li>
+        {{ end }}
+    </ul>
+
+    <button class="task_template_list_item__delete_btn" data-task-template-id="{{.Id}}" type="button">Delete</button>
+</li>
+
+{{ end }}

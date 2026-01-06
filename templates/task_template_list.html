@@ -1,0 +1,31 @@
+{{ define "task_template_list" }}
+
+<div id="task_template_list_container">
+    <ul>
+        {{ range .tasks }}
+        {{ template "task_template_list_item" .}}
+        {{end}}
+    </ul>
+
+    <script type="module">
+        import task_template_list from "../public/lib/controllers/task_template_list.controller.js"
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.querySelector('#task_template_list_container')
+
+            if (!container) {
+                const msg = `No element to be attached to the controller found. Selector: ${selector}`
+                console.error(new Error(msg))
+                return
+            }
+
+            try {
+                task_template_list.init(container)
+            } catch (e) {
+                console.error(e)
+            }
+        })
+    </script>
+</div>
+
+{{ end }}

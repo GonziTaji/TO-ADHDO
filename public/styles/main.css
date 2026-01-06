@@ -3,17 +3,14 @@
     font-family: Arial, Helvetica, sans-serif;
 }
 
-#task_form {
+.task_template_form {
     display: grid;
     row-gap: 1rem;
-}
-
-#task_form_container {
     max-width: 400px;
     margin: auto;
 }
 
-#ul_filtered_tags {
+.task_template_form__suggested_tags_list {
     display: flex;
     list-style: none;
     padding: 0;
@@ -21,7 +18,7 @@
     overflow: auto;
 }
 
-#ul_filtered_tags li+li {
+.task_template_form_suggested_tags_list li+li {
     margin-left: 0.2rem;
 }
 
@@ -46,11 +43,11 @@
     border: 1px solid gray;
 }
 
-#div_selected_tags {
+.task_template_form__selected_tags_list {
     display: flex;
 }
 
-#div_selected_tags input {
+.task_template_form__selected_tags_list input {
     border: none;
     background: none;
     width: 40px;

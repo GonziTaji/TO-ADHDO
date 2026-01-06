@@ -8,9 +8,9 @@ const elements = {
     /** @returns {HTMLTemplateElement} */
     selected_tag_template: () => document.getElementById("template_create_task_selected_tag"),
     /** @returns {HTMLUListElement} */
-    filtered_tags_list: () => document.getElementById("ul_filtered_tags"),
+    filtered_tags_list: () => document.getElementsByClassName("task_template_form_suggested_tags_list"),
     /** @returns {HTMLDivElement} */
-    selected_tags_list: () => document.getElementById("div_selected_tags"),
+    selected_tags_list: () => document.getElementsByClassName("task_template_form__suggested_tags_list"),
     /** @returns {HTMLFormElement} */
     task_form: () => document.getElementById("task_form"),
     /** @returns {HTMLTextAreaElement} */

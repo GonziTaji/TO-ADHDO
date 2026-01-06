@@ -1,0 +1,21 @@
+<!doctype html>
+
+<html>
+
+<head>
+    <title>to-adhdo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link href="public/styles/main.css" rel="stylesheet" />
+</head>
+
+<body>
+    {{ template "task_template_form" (dict "task" .form_values "tags" .tags) }}
+
+    {{ template "task_template_list" (dict "tasks" .tasks) }}
+</body>
+
+<script>
+</script>
+
+</html>
