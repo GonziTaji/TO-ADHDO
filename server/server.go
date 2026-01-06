@@ -119,6 +119,36 @@ func registerPageRoutes(router *gin.Engine) {
 			},
 		})
 	})
+
+	router.GET("task_templates/:task_id", func(c *gin.Context) {
+		task_id := c.Param("task_id")
+
+		task, err := database.GetTaskTemplate(task_id)
+
+		fmt.Printf("Task found: \"%s\n\"", task.Name)
+
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if task.Id == "" {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		tags, err := database.GetAvailableTags(100)
+
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		c.HTML(http.StatusOK, "task_template.html", gin.H{
+			"tags": tags,
+			"task": task,
+		})
+	})
 }
 
 func registerApiRoutes(rg *gin.RouterGroup) {

@@ -9,6 +9,7 @@ export default task_templates_list
 
 const selectors = {
     delete_task_btn: '.task_template_list_item__delete_btn',
+    view_task_btn: '.task_template_list_item__view_btn',
 }
 
 /** @param {HTMLDivElement} task_list_node */
@@ -25,7 +26,24 @@ function init(task_list_node) {
         btn.setAttribute('data-mounted', 'true')
     })
 
+    /** @type {HTMLButtonElement[]} */
+    const view_task_btns = task_list_node.querySelectorAll(selectors.view_task_btn);
+
+    view_task_btns.forEach((btn) => {
+        btn.addEventListener('click', handleViewTaskClick);
+        btn.setAttribute('data-mounted', 'true')
+    })
+
     task_list_node.setAttribute('data-mounted', 'true')
+}
+
+/** @param {MouseEvent} ev */
+async function handleViewTaskClick(ev) {
+    /** @type {HTMLButtonElement} */
+    const btn = ev.currentTarget;
+    const task_id = btn.getAttribute('data-task-template-id');
+
+    location.href = `/task_templates/${task_id}`
 }
 
 /** @param {MouseEvent} ev */

@@ -19,6 +19,9 @@ CREATE TABLE if not exists task_template_task_tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_tag_id INTEGER NOT NULL,
     task_template_id INTEGER NOT NULL,
+    created_at TEXT DEFAULT current_timestamp NOT NULL,
+    updated_at TEXT DEFAULT current_timestamp NOT NULL,
+    deleted_at TEXT DEFAULT NULL
 
     FOREIGN KEY (task_tag_id)
     REFERENCES task_tags(id)
@@ -28,7 +31,7 @@ CREATE TABLE if not exists task_template_task_tags (
     REFERENCES task_templates(id)
     ON DELETE CASCADE,
 
-    UNIQUE (task_tag_id, task_template_id)
+    UNIQUE (task_tag_id, task_template_id, deleted_at)
 );
 
 CREATE TABLE if not exists list_templates (
