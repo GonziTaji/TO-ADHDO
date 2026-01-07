@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -10,9 +11,9 @@ import (
 type Tag struct {
 	Id        string
 	Name      string
-	CreatedAt int
-	UpdatedAt int
-	DeletedAt int
+	CreatedAt string
+	UpdatedAt string
+	DeletedAt string
 }
 
 type TaskTemplate struct {
@@ -20,14 +21,10 @@ type TaskTemplate struct {
 	Name        string
 	Description string
 	Tags        []Tag
-	CreatedAt   int
-	UpdatedAt   int
-	DeletedAt   int
+	CreatedAt   string
+	UpdatedAt   string
+	DeletedAt   string
 }
-
-type TaskId string
-type TagId string
-type TagName string
 
 func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
 	if limit == 0 {
@@ -45,14 +42,19 @@ func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
 	}
 
 	rows, err := db.Query(`
-		SELECT id, name, description, created_at, updated_at, deleted_at
+		SELECT
+			id,
+			name,
+			COALESCE(description, ''),
+			created_at,
+			updated_at,
+			COALESCE(deleted_at, ''),
 		FROM task_templates
 		WHERE deleted_at IS NULL
 		ORDER BY updated_at DESC
 	`, nil)
 
 	if err != nil {
-		// TODO: handle error
 		return nil, err
 	}
 
@@ -86,7 +88,7 @@ func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
 			tags.name,
 			tags.created_at,
 			tags.updated_at,
-			tags.deleted_at,
+			COALESCE(tags.deleted_at, ''),
 			pivot.task_template_id as task_id
 		FROM task_template_task_tags as pivot
 		JOIN task_tags as tags on tags.id = pivot.task_tag_id
@@ -127,64 +129,76 @@ func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
 }
 
 func GetTaskTemplate(task_id string) (TaskTemplate, error) {
-	new_task_template := TaskTemplate{}
+	task_template := TaskTemplate{}
 
 	db, err := GetDatabase()
 
 	if err != nil {
-		return new_task_template, err
+		return task_template, err
 	}
 
-	rows, err := db.Query(`
+	query := `
 		SELECT
-			task_tags.id as tag_id,
-			task_tags.name as tag_name,
-
+			COALESCE(task_tags.id, '') as tag_id,
+			COALESCE(task_tags.name, '') as tag_name,
 			task_templates.id,
 			task_templates.name,
-			task_templates.description,
+			COALESCE(task_templates.description, ''),
 			task_templates.created_at,
 			task_templates.updated_at,
-			task_templates.deleted_at
-		FROM task_tags 
-		JOIN task_template_task_tags as pivot on task_tags.id = pivot.task_tag_id
-		JOIN task_templates on pivot.task_template_id = task_templates.id
+			COALESCE(task_templates.deleted_at, '')
+		FROM task_templates 
+		LEFT JOIN task_template_task_tags as pivot on task_templates.id = pivot.task_template_id
+		LEFT JOIN task_tags on pivot.task_tag_id = task_tags.id
 		WHERE task_templates.id = ?
-	`, task_id)
+	`
+
+	log.Printf("Executing query to get task and tags info: \n\n%s\n\nWith task id: %s", query, task_id)
+
+	rows, err := db.Query(query, task_id)
 
 	if err != nil {
-		return new_task_template, err
+		return task_template, err
 	}
 
 	for rows.Next() {
 		var new_tag Tag
 
-		if new_task_template.Id == "" {
+		fmt.Printf("task: %v\n", task_template)
+
+		if task_template.Id == "" {
+			fmt.Println("in if")
 			err = rows.Scan(
 				&new_tag.Id,
 				&new_tag.Name,
-				&new_task_template.Id,
-				&new_task_template.Name,
-				&new_task_template.Description,
-				&new_task_template.CreatedAt,
-				&new_task_template.UpdatedAt,
-				&new_task_template.DeletedAt,
+				&task_template.Id,
+				&task_template.Name,
+				&task_template.Description,
+				&task_template.CreatedAt,
+				&task_template.UpdatedAt,
+				&task_template.DeletedAt,
 			)
 		} else {
+			fmt.Println("in else")
 			err = rows.Scan(&new_tag.Id, &new_tag.Name)
 		}
 
-		fmt.Printf("tag_id: %s tag_name: %s\n", new_tag.Id, new_tag.Name)
+		if err != nil {
+			return task_template, err
+		}
+
+		fmt.Printf("tag: %s tag_name: %s\n", new_tag.Id, new_tag.Name)
 
 		if new_tag.Id != "" {
-			new_task_template.Tags = append(new_task_template.Tags, new_tag)
+			task_template.Tags = append(task_template.Tags, new_tag)
 		}
 	}
 
-	return new_task_template, nil
+	return task_template, nil
 }
 
-func CreateTaskTemplate(task_name string, task_description string, tag_names []string) (TaskId, error) {
+// Returns the id of the new task_template
+func CreateTaskTemplate(task_name string, task_description string, tag_names []string) (string, error) {
 	db, err := GetDatabase()
 
 	if err != nil {
@@ -197,6 +211,19 @@ func CreateTaskTemplate(task_name string, task_description string, tag_names []s
 		fmt.Printf("error starting transaction: %s\n", err.Error())
 		return "", err
 	}
+
+	res, err := tx.Exec(`
+		INSERT INTO task_templates (name, description)
+		VALUES (?, ?)
+	`, task_name, task_description)
+
+	if err != nil {
+		fmt.Printf("error inserting task template: %s\n", err.Error())
+		return "", err
+	}
+
+	i_task_id, _ := res.LastInsertId()
+	task_template_id := strconv.Itoa(int(i_task_id))
 
 	if len(tag_names) > 0 {
 		var query_values []any
@@ -269,50 +296,35 @@ func CreateTaskTemplate(task_name string, task_description string, tag_names []s
 		}
 
 		var query_sb strings.Builder
+		query_params := make([]any, len(tag_names))
 
-		query_sb.WriteString("INSERT INTO task_template_task_tags (task_tag_id, task_template_id) VALUES ")
+		query_sb.WriteString("INSERT INTO task_template_task_tags (task_tag_id, task_template_id) VALUES")
 
 		for i, task_tag_id := range task_tags_ids {
-			query_sb.WriteString("(?, ?)")
+			query_sb.WriteString(" (?, ?)")
+			query_params = append(query_params, task_tag_id, task_template_id)
+
+			if i < len(task_tags_ids)-1 {
+				query_sb.WriteString(",")
+			}
 		}
 
-		tx.Exec("")
+		res, _ := tx.Exec(query_sb.String(), query_params...)
+
+		if count, _ := res.RowsAffected(); int(count) != len(task_tags_ids) {
+			tx.Rollback()
+			return "", errors.New("One or more rows could not be inserted")
+		}
 	}
-
-	res, err := tx.Exec(`
-		INSERT INTO task_templates (name, description)
-		VALUES (?, ?)
-	`, task_name, task_description)
-
-	if err != nil {
-		fmt.Printf("error inserting task template: %s\n", err.Error())
-		return "", err
-	}
-
-	var pivot_insert_query_sb strings.Builder
-
-	pivot_insert_query_sb.WriteString(`
-		INSERT INTO task_template_task_tags (task_tag_id, task_template_id)
-		VALUES
-	`)
-
-	res, err = tx.Exec(`
-	`)
-
-	rows_affected, _ := res.RowsAffected()
-	if rows_affected == 0 {
-		return "", fmt.Errorf("Task not inserted")
-	}
-
-	id, _ := res.LastInsertId()
 
 	err = tx.Commit()
+
 	if err != nil {
 		fmt.Printf("error commiting transaction: %s\n", err.Error())
 		return "", err
 	}
 
-	return TaskId(strconv.Itoa(int(id))), nil
+	return task_template_id, nil
 }
 
 func DeleteTaskTemplate(task_id string) error {

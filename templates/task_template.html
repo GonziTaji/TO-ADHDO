@@ -1,0 +1,46 @@
+<pre>
+    {{.tags}}
+
+    {{.task}}
+</pre>
+
+<div class="task_template__container">
+    <div class="task_template__content_container" data-task-id="{{.task.Id}}">
+        {{ template "task_template_view" (dict "task" .task) }}
+    </div>
+
+    <!-- data-mode type 'normal' | 'edit' to identify mode in css -->
+    <div class="task_template__buttons_container" data-mode="normal">
+        <div data-mode-target="normal">
+            <button data-btn-action="edit" type="button">Edit</button>
+            <button data-btn-action="delete" type="button">Remove</button>
+        </div>
+
+        <div data-mode-target="edit">
+            <button data-btn-action="save" type="button">Save</button>
+            <button data-btn-action="cancel" type="button">Cancel</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import controller from "../public/lib/controllers/task_template_page.controller.js"
+
+        controller.mount(
+            "{{.task.Id}}",
+            document.querySelector(".task_template__content_container"),
+            document.querySelector(".task_template__buttons_container")
+        )
+    </script>
+
+    <style>
+        [data-mode="normal"] [data-mode-target="normal"],
+        [data-mode="edit"] [data-mode-target="edit"] {
+            display: block;
+        }
+
+        [data-mode="normal"] [data-mode-target="edit"],
+        [data-mode="edit"] [data-mode-target="normal"] {
+            display: none;
+        }
+    </style>
+</div>

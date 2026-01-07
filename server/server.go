@@ -113,9 +113,9 @@ func registerPageRoutes(router *gin.Engine) {
 				Name:        "",
 				Description: "",
 				Tags:        []database.Tag{},
-				CreatedAt:   0,
-				UpdatedAt:   0,
-				DeletedAt:   0,
+				CreatedAt:   "",
+				UpdatedAt:   "",
+				DeletedAt:   "",
 			},
 		})
 	})
@@ -125,7 +125,7 @@ func registerPageRoutes(router *gin.Engine) {
 
 		task, err := database.GetTaskTemplate(task_id)
 
-		fmt.Printf("Task found: \"%s\n\"", task.Name)
+		fmt.Printf("Task found: \"%s\"\n", task.Name)
 
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
