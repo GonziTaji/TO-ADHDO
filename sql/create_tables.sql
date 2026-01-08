@@ -21,7 +21,7 @@ CREATE TABLE if not exists task_template_task_tags (
     task_template_id INTEGER NOT NULL,
     created_at TEXT DEFAULT current_timestamp NOT NULL,
     updated_at TEXT DEFAULT current_timestamp NOT NULL,
-    deleted_at TEXT DEFAULT NULL
+    deleted_at TEXT DEFAULT NULL,
 
     FOREIGN KEY (task_tag_id)
     REFERENCES task_tags(id)

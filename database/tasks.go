@@ -48,7 +48,7 @@ func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
 			COALESCE(description, ''),
 			created_at,
 			updated_at,
-			COALESCE(deleted_at, ''),
+			COALESCE(deleted_at, '')
 		FROM task_templates
 		WHERE deleted_at IS NULL
 		ORDER BY updated_at DESC
@@ -164,8 +164,6 @@ func GetTaskTemplate(task_id string) (TaskTemplate, error) {
 	for rows.Next() {
 		var new_tag Tag
 
-		fmt.Printf("task: %v\n", task_template)
-
 		if task_template.Id == "" {
 			fmt.Println("in if")
 			err = rows.Scan(
@@ -186,8 +184,6 @@ func GetTaskTemplate(task_id string) (TaskTemplate, error) {
 		if err != nil {
 			return task_template, err
 		}
-
-		fmt.Printf("tag: %s tag_name: %s\n", new_tag.Id, new_tag.Name)
 
 		if new_tag.Id != "" {
 			task_template.Tags = append(task_template.Tags, new_tag)
@@ -271,7 +267,7 @@ func CreateTaskTemplate(task_name string, task_description string, tag_names []s
 			var tag_id string
 			rows.Scan(&tag_name, &tag_id)
 
-			fmt.Printf("tag found: id='%s' name='%s'", tag_id, tag_name)
+			fmt.Printf("tag found: id='%s' name='%s'\n", tag_id, tag_name)
 
 			if tag_id == "" {
 				tags_to_create = append(tags_to_create, tag_name)
@@ -286,6 +282,7 @@ func CreateTaskTemplate(task_name string, task_description string, tag_names []s
 
 				if err != nil {
 					tx.Rollback()
+					fmt.Printf("error inserting named %s: %s\n", new_tag_name, err.Error())
 					return "", err
 				}
 
@@ -296,7 +293,7 @@ func CreateTaskTemplate(task_name string, task_description string, tag_names []s
 		}
 
 		var query_sb strings.Builder
-		query_params := make([]any, len(tag_names))
+		query_params := make([]any, 0, len(task_tags_ids)*2)
 
 		query_sb.WriteString("INSERT INTO task_template_task_tags (task_tag_id, task_template_id) VALUES")
 
@@ -309,9 +306,17 @@ func CreateTaskTemplate(task_name string, task_description string, tag_names []s
 			}
 		}
 
-		res, _ := tx.Exec(query_sb.String(), query_params...)
+		res, err := tx.Exec(query_sb.String(), query_params...)
 
-		if count, _ := res.RowsAffected(); int(count) != len(task_tags_ids) {
+		if err != nil {
+			tx.Rollback()
+			fmt.Printf("error inserting pivot table: %s\n", err.Error())
+			return "", err
+		}
+
+		count, _ := res.RowsAffected()
+
+		if int(count) != len(task_tags_ids) {
 			tx.Rollback()
 			return "", errors.New("One or more rows could not be inserted")
 		}
