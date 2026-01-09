@@ -164,22 +164,17 @@ func GetTaskTemplate(task_id string) (TaskTemplate, error) {
 	for rows.Next() {
 		var new_tag Tag
 
-		if task_template.Id == "" {
-			fmt.Println("in if")
-			err = rows.Scan(
-				&new_tag.Id,
-				&new_tag.Name,
-				&task_template.Id,
-				&task_template.Name,
-				&task_template.Description,
-				&task_template.CreatedAt,
-				&task_template.UpdatedAt,
-				&task_template.DeletedAt,
-			)
-		} else {
-			fmt.Println("in else")
-			err = rows.Scan(&new_tag.Id, &new_tag.Name)
-		}
+		fmt.Println("in if")
+		err = rows.Scan(
+			&new_tag.Id,
+			&new_tag.Name,
+			&task_template.Id,
+			&task_template.Name,
+			&task_template.Description,
+			&task_template.CreatedAt,
+			&task_template.UpdatedAt,
+			&task_template.DeletedAt,
+		)
 
 		if err != nil {
 			return task_template, err

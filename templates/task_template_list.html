@@ -1,5 +1,5 @@
 {{ define "task_template_list" }}
-<div class="task_template_list_container" onload=test>
+<div class="task_template_list_container">
     <ul>
         {{ range .tasks }}
         {{ template "task_template_list_item" .}}
@@ -57,6 +57,7 @@
 <style>
     .task_template_list_item__tags_list {
         display: flex;
+        list-style: none;
     }
 </style>
 {{ end }}

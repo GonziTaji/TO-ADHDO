@@ -162,9 +162,38 @@ func registerApiRoutes(rg *gin.RouterGroup) {
 		}
 
 		api.GET("echo", api_handler)
-		api.POST("tasks_templates", postTaskTemplatesHandler)
-		api.GET("tasks_templates", getTaskTemplatesHandler)
-		api.DELETE("tasks_templates/:task_id", deleteTaskHandler)
+		api.POST("task_templates", postTaskTemplatesHandler)
+		api.GET("task_templates", getTaskTemplatesHandler)
+		api.DELETE("task_templates/:task_id", deleteTaskHandler)
+
+		api.GET("task_templates/:task_id/list-item", func(c *gin.Context) {
+			task_id := c.Param("task_id")
+
+			fmt.Printf("Task id: \"%s\"\n", task_id)
+
+			task, err := database.GetTaskTemplate(task_id)
+
+			fmt.Printf("Task found: \"%s\"\n", task.Name)
+
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			if task.Id == "" {
+				c.Status(http.StatusNotFound)
+				return
+			}
+
+			tmpl, err := template.ParseFiles("templates/task_template_list.html")
+
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			tmpl.ExecuteTemplate(c.Writer, "task_template_list_item", task)
+		})
 	}
 }
 

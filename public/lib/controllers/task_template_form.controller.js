@@ -1,4 +1,5 @@
 import { UnexpectedTagNameError } from "../utils/errors.js"
+import events from "../utils/events.js"
 import validateSelectors from "../utils/validate_selectors.js"
 
 const task_form = {
@@ -49,9 +50,9 @@ async function handleTaskFormSubmit(ev) {
 
     const form_data = new FormData(form);
 
-    const response = await fetch("/api/tasks_templates", { method: "POST", body: form_data })
+    const response = await fetch("/api/task_templates", { method: "POST", body: form_data })
 
-    const { error } = await response.json()
+    const { id, error } = await response.json()
 
     if (error) {
         alert(error.message || String(error))
@@ -65,6 +66,8 @@ async function handleTaskFormSubmit(ev) {
 
     const selected_tags_list = form.querySelector(selectors.selected_tags_list)
     selected_tags_list.innerHTML = ""
+
+    events.dispatch(events.event_names.created__task_template, { id })
 }
 
 /** @param {KeyboardEvent} ev */
