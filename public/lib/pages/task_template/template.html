@@ -1,8 +1,14 @@
-<pre>
-    {{.tags}}
+{{ define "home_page" }}
+<!doctype html>
 
-    {{.task}}
-</pre>
+<html>
+
+<head>
+    <title>to-adhdo - Task {{ .task.Name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link href="public/styles/main.css" rel="stylesheet" />
+</head>
 
 <div class="task_template__container">
     <div class="task_template__content_container" data-task-id="{{.task.Id}}">
@@ -23,7 +29,7 @@
     </div>
 
     <script type="module">
-        import controller from "../public/lib/controllers/task_template_page.controller.js"
+        import controller from "./controller.js"
 
         controller.mount(
             "{{.task.Id}}",
@@ -44,3 +50,5 @@
         }
     </style>
 </div>
+
+{{ end }}

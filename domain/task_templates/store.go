@@ -1,4 +1,4 @@
-package database
+package task_templates
 
 import (
 	"errors"
@@ -6,27 +6,15 @@ import (
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/yogusita/to-adhdo/database"
+	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
-type Tag struct {
-	Id        string
-	Name      string
-	CreatedAt string
-	UpdatedAt string
-	DeletedAt string
+type Store struct {
 }
 
-type TaskTemplate struct {
-	Id          string
-	Name        string
-	Description string
-	Tags        []Tag
-	CreatedAt   string
-	UpdatedAt   string
-	DeletedAt   string
-}
-
-func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
+func (Store) List(limit int8, include_deleted bool) ([]TaskTemplate, error) {
 	if limit == 0 {
 		limit = 10
 	}
@@ -34,14 +22,16 @@ func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
 	tasks_by_id := make(map[string]TaskTemplate)
 	var tasks_ids []any // type any to use it as query parameter
 
-	db, err := GetDatabase()
+	db, err := database.GetDatabase()
 
 	if err != nil {
 		// TODO: handle error
 		return nil, err
 	}
 
-	rows, err := db.Query(`
+	var query_sb strings.Builder
+
+	query_sb.WriteString(`
 		SELECT
 			id,
 			name,
@@ -50,9 +40,15 @@ func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
 			updated_at,
 			COALESCE(deleted_at, '')
 		FROM task_templates
-		WHERE deleted_at IS NULL
-		ORDER BY updated_at DESC
-	`, nil)
+	`)
+
+	if include_deleted == false {
+		query_sb.WriteString(" WHERE deleted_at IS NULL")
+	}
+
+	query_sb.WriteString(" ORDER BY updated_at DESC;")
+
+	rows, err := db.Query(query_sb.String())
 
 	if err != nil {
 		return nil, err
@@ -103,7 +99,7 @@ func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
 	}
 
 	for rows.Next() {
-		var tag Tag
+		var tag tags.Tag
 		var task_id string
 
 		if err := rows.Scan(&tag.Id, &tag.Name, &tag.CreatedAt, &tag.UpdatedAt, &tag.DeletedAt, &task_id); err != nil {
@@ -128,10 +124,10 @@ func GetAvailableTaskTemplates(limit int8) ([]TaskTemplate, error) {
 	return tasks, nil
 }
 
-func GetTaskTemplate(task_id string) (TaskTemplate, error) {
+func (Store) Get(task_id string) (TaskTemplate, error) {
 	task_template := TaskTemplate{}
 
-	db, err := GetDatabase()
+	db, err := database.GetDatabase()
 
 	if err != nil {
 		return task_template, err
@@ -162,7 +158,7 @@ func GetTaskTemplate(task_id string) (TaskTemplate, error) {
 	}
 
 	for rows.Next() {
-		var new_tag Tag
+		var new_tag tags.Tag
 
 		fmt.Println("in if")
 		err = rows.Scan(
@@ -188,9 +184,8 @@ func GetTaskTemplate(task_id string) (TaskTemplate, error) {
 	return task_template, nil
 }
 
-// Returns the id of the new task_template
-func CreateTaskTemplate(task_name string, task_description string, tag_names []string) (string, error) {
-	db, err := GetDatabase()
+func (Store) Create(task_name string, task_description string, tag_names []string) (string, error) {
+	db, err := database.GetDatabase()
 
 	if err != nil {
 		return "", err
@@ -327,8 +322,8 @@ func CreateTaskTemplate(task_name string, task_description string, tag_names []s
 	return task_template_id, nil
 }
 
-func DeleteTaskTemplate(task_id string) error {
-	db, err := GetDatabase()
+func (Store) Delete(task_id string) error {
+	db, err := database.GetDatabase()
 
 	if err != nil {
 		return err

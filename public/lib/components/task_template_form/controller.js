@@ -1,6 +1,6 @@
-import { UnexpectedTagNameError } from "../utils/errors.js"
-import events from "../utils/events.js"
-import validateSelectors from "../utils/validate_selectors.js"
+import { UnexpectedTagNameError } from "../../utils/errors.js"
+import { EVENT_NAMES } from "../../utils/events.js"
+import validateSelectors from "../../utils/validate_selectors.js"
 
 const task_form = {
     init,
@@ -67,7 +67,7 @@ async function handleTaskFormSubmit(ev) {
     const selected_tags_list = form.querySelector(selectors.selected_tags_list)
     selected_tags_list.innerHTML = ""
 
-    events.dispatch(events.event_names.created__task_template, { id })
+    document.dispatchEvent(EVENT_NAMES.new_task_template, { id })
 }
 
 /** @param {KeyboardEvent} ev */

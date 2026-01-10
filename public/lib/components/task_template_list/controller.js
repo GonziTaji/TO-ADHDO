@@ -1,7 +1,7 @@
-import { AlreadyMountedError } from "../utils/errors.js";
-import events from "../utils/events.js";
-import service from "./task_template_list.service.js";
-import { HttpServiceError } from "../utils/errors.js";
+import { AlreadyMountedError } from "../../utils/errors.js";
+import { EVENT_NAMES } from "../../utils/events.js";
+import onElementRemoved from "../../utils/on_element_removed.js";
+import service from "./service.js";
 
 const task_templates_list = {
     init,
@@ -22,9 +22,16 @@ function init(task_list_node) {
 
     registerButtonEvents(task_list_node)
 
-    task_list_node.setAttribute('data-mounted', 'true')
+    const handler = (ev) => handleTaskCreated(task_list_node, ev)
 
-    events.register(task_list_node, events.event_names.created__task_template, (ev) => handleTaskCreated(task_list_node, ev))
+    document.addEventListener(EVENT_NAMES.new_task_template, handler)
+
+    onElementRemoved(
+        task_list_node,
+        () => document.removeEventListener(EVENT_NAMES.new_task_template)
+    )
+
+    task_list_node.setAttribute('data-mounted', 'true')
 }
 
 /**
@@ -32,7 +39,9 @@ function init(task_list_node) {
  */
 function registerButtonEvents(task_list_node) {
     /** @type {HTMLButtonElement[]} */
-    const delete_task_btns = task_list_node.querySelectorAll(`${selectors.delete_task_btn}:not([data-mounted="true"])`);
+    const delete_task_btns = task_list_node.querySelectorAll(
+        `${selectors.delete_task_btn}:not([data-mounted="true"])`
+    );
 
     delete_task_btns.forEach((btn) => {
         btn.addEventListener('click', handleDeleteTaskClick);
@@ -40,7 +49,9 @@ function registerButtonEvents(task_list_node) {
     })
 
     /** @type {HTMLButtonElement[]} */
-    const view_task_btns = task_list_node.querySelectorAll(`${selectors.view_task_btn}:not([data-mounted="true"])`);
+    const view_task_btns = task_list_node.querySelectorAll(
+        `${selectors.view_task_btn}:not([data-mounted="true"])`
+    );
 
     view_task_btns.forEach((btn) => {
         btn.addEventListener('click', handleViewTaskClick);
@@ -73,15 +84,6 @@ async function handleTaskCreated(task_list_node, ev) {
     console.log("new li", li)
 
     registerButtonEvents(task_list_node)
-
-    // /** @type {HTMLButtonElement} */
-    // const delete_task_btn = task_list_node.querySelector(selectors.delete_task_btn);
-    // delete_task_btn.addEventListener('click', handleTaskClick);
-    // delete_task_btn.setAttribute('data-mounted', 'true')
-    // /** @type {HTMLButtonElement} */
-    // const view_task_btn = task_list_node.querySelector(selectors.view_task_btn);
-    // view_task_btn.addEventListener('click', handleViewTaskClick);
-    // view_task_btn.setAttribute('data-mounted', 'true')
 }
 
 /** @param {MouseEvent} ev */

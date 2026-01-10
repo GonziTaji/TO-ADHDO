@@ -1,12 +1,11 @@
-const event_names = /** @type {const} */ ({
-    created__task_template: "created:task_template",
-    created__task_tag: "created:task_tag",
-})
-
-const events = Object.freeze({ register, dispatch, event_names })
+const events = Object.freeze({ register, dispatch })
 export default events
 
-/** @typedef {typeof event_names[keyof event_names]} CustomEventName */
+export const EVENT_NAMES = /** @type {const} */ Object.freeze({
+    new_task_template: "new:task_template",
+})
+
+/** @typedef {typeof EVENT_NAMES[keyof EVENT_NAMES]} CustomEventName */
 
 /**
  * @typedef {(ev: CustomEvent<T>) => void} CustomEventHandler<T>

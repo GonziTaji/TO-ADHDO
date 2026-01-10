@@ -1,11 +1,16 @@
-package database
+package tags
 
-func GetAvailableTags(limit int8) ([]Tag, error) {
+import "github.com/yogusita/to-adhdo/database"
+
+type Store struct {
+}
+
+func (Store) List(limit int8, include_deleted bool) ([]Tag, error) {
 	if limit == 0 {
 		limit = 10
 	}
 
-	db, err := GetDatabase()
+	db, err := database.GetDatabase()
 
 	if err != nil {
 		// TODO: handle error
@@ -18,7 +23,8 @@ func GetAvailableTags(limit int8) ([]Tag, error) {
 		SELECT id, name, created_at, updated_at, deleted_at
 		FROM task_tags
 		WHERE deleted_at IS NULL
-	`)
+		LIMIT ?
+	`, limit)
 
 	if err != nil {
 		// TODO: handle error
@@ -37,6 +43,10 @@ func GetAvailableTags(limit int8) ([]Tag, error) {
 		)
 
 		tags = append(tags, tag)
+	}
+
+	if err := rows.Close(); err != nil {
+		return tags, err
 	}
 
 	return tags, nil
