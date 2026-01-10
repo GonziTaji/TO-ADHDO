@@ -49,10 +49,8 @@ func newRouter() *gin.Engine {
 		"dict": dictFuncMap,
 	})
 
-	// router.LoadHTMLGlob("public/lib/components/*/template.html")
-	// router.LoadHTMLGlob("public/lib/pages/*/template.html")
-
-	router.LoadHTMLGlob("public/**/template.html")
+	router.LoadHTMLGlob("public/lib/*/*/template.html")
+	// router.LoadHTMLGlob("templates/**/*")
 
 	rootRouterGroup := &router.RouterGroup
 
@@ -63,6 +61,10 @@ func newRouter() *gin.Engine {
 	apiRouterGroup := router.Group("/api")
 
 	task_templates.RegisterRoutes(apiRouterGroup)
+
+	router.Use(func(ctx *gin.Context) {
+		ctx.String(http.StatusNotFound, "Nothing here uwu", nil)
+	})
 
 	return router
 }

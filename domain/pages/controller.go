@@ -9,7 +9,7 @@ import (
 	"github.com/yogusita/to-adhdo/domain/task_templates"
 )
 
-func indexHandler(c *gin.Context) {
+func HomeHandler(c *gin.Context) {
 	task_templates_store := task_templates.Store{}
 	task_tags_store := tags.Store{}
 
@@ -33,7 +33,7 @@ func indexHandler(c *gin.Context) {
 
 	task_tags := []tags.Tag{}
 
-	c.HTML(http.StatusOK, "template.html", gin.H{
+	c.HTML(http.StatusOK, "pages/home", gin.H{
 		"tags":  tags_list,
 		"tasks": tasks,
 		"form_values": task_templates.TaskTemplate{
@@ -48,7 +48,7 @@ func indexHandler(c *gin.Context) {
 	})
 }
 
-func taskTemplateHandler(c *gin.Context) {
+func TaskTemplateHandler(c *gin.Context) {
 	task_id := c.Param("task_id")
 
 	task_templates_store := task_templates.Store{}
@@ -75,7 +75,7 @@ func taskTemplateHandler(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "task_templates/view.html", gin.H{
+	c.HTML(http.StatusOK, "pages/task_template", gin.H{
 		"tags": tags,
 		"task": task,
 	})

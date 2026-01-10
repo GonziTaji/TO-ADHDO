@@ -1,7 +1,7 @@
-import { AlreadyMountedError } from "../../utils/errors.js";
-import { EVENT_NAMES } from "../../utils/events.js";
-import onElementRemoved from "../../utils/on_element_removed.js";
-import service from "./service.js";
+import { AlreadyMountedError } from "../utils/errors.js";
+import { EVENT_NAMES } from "../utils/events.js";
+import onElementRemoved from "../utils/on_element_removed.js";
+import service from "../services/task_template_list.service.js";
 
 const task_templates_list = {
     init,
@@ -64,12 +64,9 @@ function registerButtonEvents(task_list_node) {
  * @param {CustomEvent<{id:string}>} ev
  */
 async function handleTaskCreated(task_list_node, ev) {
-    console.log("handleTaskCreated called")
     const task_id = ev.detail.id
 
     const response = await service.getTaskListItem(task_id)
-
-    console.log("response for task list item id: " + task_id, response)
 
     if (typeof response !== 'string') {
         alert(response.message)
