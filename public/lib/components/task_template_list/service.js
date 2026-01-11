@@ -1,4 +1,4 @@
-import { HttpServiceError } from "../utils/errors.js";
+import { HttpServiceError } from "../../utils/errors.js";
 
 const service = {
     getTaskListItem,

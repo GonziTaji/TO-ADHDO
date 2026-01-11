@@ -67,7 +67,7 @@ async function handleTaskFormSubmit(ev) {
     const selected_tags_list = form.querySelector(selectors.selected_tags_list)
     selected_tags_list.innerHTML = ""
 
-    document.dispatchEvent(EVENT_NAMES.new_task_template, { id })
+    document.dispatchEvent(new CustomEvent(EVENT_NAMES.new_task_template, { detail: { id } }))
 }
 
 /** @param {KeyboardEvent} ev */
@@ -98,7 +98,7 @@ function handleTagInputChange(ev) {
         btn.innerText = tag;
 
         btn.addEventListener("click", () => {
-            addTagToTask(tag);
+            addTagToTask(form, tag);
         });
 
         const li = document.createElement("li");
@@ -112,7 +112,6 @@ function handleTagInputChange(ev) {
 function handleTagInputKeyDown(ev) {
     /** @type {HTMLInputElement} */
     const input = ev.currentTarget;
-    const form = input.form
     const value = input.value.trim().toLowerCase();
 
     if (value === "") {
@@ -122,15 +121,29 @@ function handleTagInputKeyDown(ev) {
     if (ev.key === "Enter" || ev.key === "Tab") {
         ev.preventDefault();
 
-        /** @type {HTMLTemplateElement} */
-        const template_node = form.querySelector(selectors.selected_tag_template)
-        const new_tag_template_node = template_node.content.cloneNode(true);
-        const new_tag_node = new_tag_template_node.children[0]
+        addTagToTask(input.form, value)
+    }
+}
 
-        /** @type {HTMLOptionElement} */
-        const selected_tag_option = form.querySelector(
-            `${selectors.available_tags_datalist} option[value="${value}"]`
-        )
+/**
+ * @param {HTMLFormElement} form
+ * @param {string} tag_name
+ * */
+function addTagToTask(form, tag_name) {
+    /** @type {HTMLTemplateElement} */
+    const template_node = form.querySelector(selectors.selected_tag_template)
+    const new_tag_template_node = template_node.content.cloneNode(true);
+
+    /** @type {HTMLOptionElement} */
+    const selected_tag_option = form.querySelector(
+        `${selectors.available_tags_datalist} option[value="${tag_name}"]:not(:disabled)`
+    )
+
+    const selected_task_list = form.querySelector(selectors.selected_tags_list)
+    const tasks_selected = [...selected_task_list.querySelectorAll('input')].map(({ value }) => value)
+
+    if (!tasks_selected.includes(tag_name)) {
+        const new_tag_node = new_tag_template_node.children[0]
 
         const remove_handler = () => {
             new_tag_node.remove();
@@ -140,21 +153,22 @@ function handleTagInputKeyDown(ev) {
             }
         }
 
-        new_tag_node.querySelector("input").value = value;
+        new_tag_node.querySelector("input").value = tag_name;
         new_tag_node.querySelector("button").addEventListener("click", remove_handler);
 
         const selected_tags_list = form.querySelector(selectors.selected_tags_list)
+
         selected_tags_list.appendChild(new_tag_node)
+    }
 
-        const suggested_tags_list = form.querySelector(selectors.suggested_tags_list)
-        suggested_tags_list.innerHTML = ""
+    const suggested_tags_list = form.querySelector(selectors.suggested_tags_list)
+    suggested_tags_list.innerHTML = ""
 
-        const input = form.querySelector(selectors.tag_input);
-        input.value = ""
+    const input = form.querySelector(selectors.tag_input);
+    input.value = ""
 
-        if (selected_tag_option) {
-            selected_tag_option.disabled = true;
-        }
+    if (selected_tag_option) {
+        selected_tag_option.disabled = true;
     }
 }
 

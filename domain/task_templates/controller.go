@@ -101,7 +101,7 @@ func (Controller) GetTaskAsListItem(c *gin.Context) {
 		return
 	}
 
-	tmpl, err := template.ParseFiles("templates/task_template_list.html")
+	tmpl, err := template.ParseFiles("public/lib/components/task_template_list/template.html")
 
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())

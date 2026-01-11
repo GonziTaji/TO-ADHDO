@@ -1,7 +1,7 @@
-import { AlreadyMountedError } from "../utils/errors.js";
-import { EVENT_NAMES } from "../utils/events.js";
-import onElementRemoved from "../utils/on_element_removed.js";
-import service from "../services/task_template_list.service.js";
+import { AlreadyMountedError } from "../../utils/errors.js";
+import { EVENT_NAMES } from "../../utils/events.js";
+import onElementRemoved from "../../utils/on_element_removed.js";
+import service from "./service.js";
 
 const task_templates_list = {
     init,
@@ -76,9 +76,6 @@ async function handleTaskCreated(task_list_node, ev) {
     const ul = task_list_node.querySelector('ul')
 
     ul.insertAdjacentHTML('afterbegin', response)
-    const li = ul.firstChild
-
-    console.log("new li", li)
 
     registerButtonEvents(task_list_node)
 }
