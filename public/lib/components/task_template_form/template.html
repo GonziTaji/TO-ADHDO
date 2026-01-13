@@ -58,15 +58,15 @@
             if (!form) {
                 const msg = `No element to be attached to the controller found. Selector: ${selector}`
                 console.error(new Error(msg))
-            }
+                pf
 
 
-            try {
-                task_template_form.init(form)
-            } catch (e) {
-                console.error(e)
-            }
-        })
+                try {
+                    task_template_form.init(form)
+                } catch (e) {
+                    console.error(e)
+                }
+            })
     </script>
 </form>
 {{end}}
