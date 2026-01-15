@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/yogusita/to-adhdo/domain/articles"
 	"github.com/yogusita/to-adhdo/domain/tags"
-	"github.com/yogusita/to-adhdo/domain/task_templates"
 )
 
-func HomeHandler(c *gin.Context) {
-	task_templates_store := task_templates.Store{}
+func ArticleForm(c *gin.Context) {
+	task_templates_store := articles.Store{}
 	task_tags_store := tags.Store{}
 
 	tasks, err := task_templates_store.List(10, false)
@@ -31,16 +31,16 @@ func HomeHandler(c *gin.Context) {
 		return
 	}
 
-	task_tags := []tags.Tag{}
+	tags := []tags.Category{}
 
 	c.HTML(http.StatusOK, "pages/home", gin.H{
 		"tags":  tags_list,
 		"tasks": tasks,
-		"form_values": task_templates.TaskTemplate{
+		"form_values": articles.Article{
 			Id:          "",
 			Name:        "",
 			Description: "",
-			Tags:        task_tags,
+			Tags:        tags,
 			CreatedAt:   "",
 			UpdatedAt:   "",
 			DeletedAt:   "",
@@ -48,7 +48,7 @@ func HomeHandler(c *gin.Context) {
 	})
 }
 
-func TaskTemplateHandler(c *gin.Context) {
+func ArticleView(c *gin.Context) {
 	task_id := c.Param("task_id")
 
 	task_templates_store := task_templates.Store{}

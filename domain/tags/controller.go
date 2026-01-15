@@ -40,6 +40,4 @@ func (Controller) GetListHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"tags": tags,
 	})
-
-	return
 }

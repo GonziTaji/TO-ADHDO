@@ -5,7 +5,7 @@ import "github.com/yogusita/to-adhdo/database"
 type Store struct {
 }
 
-func (Store) List(limit int8, include_deleted bool) ([]Tag, error) {
+func (Store) List(limit int8, include_deleted bool) ([]Category, error) {
 	if limit == 0 {
 		limit = 10
 	}
@@ -17,7 +17,7 @@ func (Store) List(limit int8, include_deleted bool) ([]Tag, error) {
 		return nil, err
 	}
 
-	var tags []Tag
+	var tags []Category
 
 	rows, err := db.Query(`
 		SELECT id, name, created_at, updated_at, deleted_at
@@ -32,7 +32,7 @@ func (Store) List(limit int8, include_deleted bool) ([]Tag, error) {
 	}
 
 	for rows.Next() {
-		var tag Tag
+		var tag Category
 
 		rows.Scan(
 			&tag.Id,

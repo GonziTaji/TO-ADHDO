@@ -3,6 +3,7 @@ export default events
 
 export const EVENT_NAMES = /** @type {const} */ Object.freeze({
     new_task_template: "new:task_template",
+    new_article: "new:article",
 })
 
 /** @typedef {typeof EVENT_NAMES[keyof EVENT_NAMES]} CustomEventName */

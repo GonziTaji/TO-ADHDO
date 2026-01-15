@@ -1,6 +1,6 @@
 package tags
 
-type Tag struct {
+type Category struct {
 	Id        string
 	Name      string
 	CreatedAt string

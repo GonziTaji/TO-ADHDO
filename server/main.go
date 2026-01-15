@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yogusita/to-adhdo/domain/pages"
-	"github.com/yogusita/to-adhdo/domain/task_templates"
+	"github.com/yogusita/to-adhdo/domain/articles"
 	"github.com/yogusita/to-adhdo/env"
 )
 
@@ -50,20 +49,15 @@ func newRouter() *gin.Engine {
 	})
 
 	router.LoadHTMLGlob("public/lib/*/*/template.html")
-	// router.LoadHTMLGlob("templates/**/*")
 
-	rootRouterGroup := &router.RouterGroup
+	baseRouter := &router.RouterGroup
 
-	registerStaticRoutes(rootRouterGroup)
+	registerStaticRoutes(baseRouter)
 
-	pages.RegisterPages(rootRouterGroup)
-
-	apiRouterGroup := router.Group("/api")
-
-	task_templates.RegisterRoutes(apiRouterGroup)
+	articles.RegisterRoutes(baseRouter)
 
 	router.Use(func(ctx *gin.Context) {
-		ctx.String(http.StatusNotFound, "Nothing here uwu", nil)
+		ctx.String(http.StatusNotFound, "Nothing here uwu")
 	})
 
 	return router
