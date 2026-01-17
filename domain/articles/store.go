@@ -1,34 +1,32 @@
 package articles
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/yogusita/to-adhdo/database"
-	categories "github.com/yogusita/to-adhdo/domain/tags"
+	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
 type QueryArgs []any
 
 type Store struct {
+	db *sql.DB
 }
 
-func (Store) List(limit int8, include_deleted bool) ([]Article, error) {
-	if limit == 0 {
-		limit = 10
+func CreateStore(db *sql.DB) *Store {
+	return &Store{db}
+}
+
+func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
+	if options.Limit == 0 {
+		options.Limit = 100
 	}
 
 	articles_by_id := make(map[string]Article)
 	var articles_ids []any // type any to use it as query parameter
-
-	db, err := database.GetDatabase()
-
-	if err != nil {
-		// TODO: handle error
-		return nil, err
-	}
 
 	var query_sb strings.Builder
 
@@ -43,13 +41,14 @@ func (Store) List(limit int8, include_deleted bool) ([]Article, error) {
 		FROM articles
 	`)
 
-	if include_deleted == false {
+	if !options.IncludeDeleted {
 		query_sb.WriteString(" WHERE deleted_at IS NULL")
 	}
 
-	query_sb.WriteString(" ORDER BY updated_at DESC;")
+	query_sb.WriteString(" ORDER BY updated_at DESC")
+	query_sb.WriteString(" LIMIT ? OFFSET ?;")
 
-	rows, err := db.Query(query_sb.String())
+	rows, err := s.db.Query(query_sb.String(), options.Limit, options.Offset)
 
 	if err != nil {
 		return nil, err
@@ -81,18 +80,18 @@ func (Store) List(limit int8, include_deleted bool) ([]Article, error) {
 
 	query := fmt.Sprintf(`
 		SELECT
-			categories.id,
-			categories.name,
-			categories.created_at,
-			categories.updated_at,
-			COALESCE(categories.deleted_at, ''),
+			tags.id,
+			tags.name,
+			tags.created_at,
+			tags.updated_at,
+			COALESCE(tags.deleted_at, ''),
 			pivot.article_id as article_id
-		FROM articles_categories as pivot
-		JOIN categories on categories.id = pivot.category_id
+		FROM articles_tags as pivot
+		JOIN tags on tags.id = pivot.tag_id
 		WHERE pivot.article_id IN (%s)
 	`, strings.Join(query_placeholders, ","))
 
-	rows, err = db.Query(query, articles_ids...)
+	rows, err = s.db.Query(query, articles_ids...)
 
 	if err != nil {
 		// TODO: handle error
@@ -100,22 +99,22 @@ func (Store) List(limit int8, include_deleted bool) ([]Article, error) {
 	}
 
 	for rows.Next() {
-		var category categories.Category
+		var tag tags.Tag
 		var article_id string
 
 		if err := rows.Scan(
-			&category.Id,
-			&category.Name,
-			&category.CreatedAt,
-			&category.UpdatedAt,
-			&category.DeletedAt,
+			&tag.Id,
+			&tag.Name,
+			&tag.CreatedAt,
+			&tag.UpdatedAt,
+			&tag.DeletedAt,
 			&article_id,
 		); err != nil {
 			return nil, err
 		}
 
 		article := articles_by_id[article_id]
-		article.Tags = append(article.Tags, category)
+		article.Tags = append(article.Tags, tag)
 
 		articles_by_id[article_id] = article
 	}
@@ -132,19 +131,13 @@ func (Store) List(limit int8, include_deleted bool) ([]Article, error) {
 	return articles, nil
 }
 
-func (Store) Get(article_id string) (Article, error) {
+func (s *Store) Get(article_id string) (Article, error) {
 	article := Article{}
-
-	db, err := database.GetDatabase()
-
-	if err != nil {
-		return article, err
-	}
 
 	query := `
 		SELECT
-			COALESCE(categories.id, '') as category_id,
-			COALESCE(categories.name, '') as category_id,
+			COALESCE(tags.id, '') as tag_id,
+			COALESCE(tags.name, '') as tag_id,
 			articles.id,
 			articles.name,
 			COALESCE(articles.description, ''),
@@ -152,24 +145,24 @@ func (Store) Get(article_id string) (Article, error) {
 			articles.updated_at,
 			COALESCE(articles.deleted_at, '')
 		FROM articles 
-		LEFT JOIN articles_categories as pivot on articles.id = pivot.article_id
-		LEFT JOIN categories on pivot.category_id = categories.id
+		LEFT JOIN articles_tags as pivot on articles.id = pivot.article_id
+		LEFT JOIN tags on pivot.tag_id = tags.id
 		WHERE articles.id = ?
 	`
 
-	rows, err := db.Query(query, article_id)
+	rows, err := s.db.Query(query, article_id)
 
 	if err != nil {
 		return article, err
 	}
 
 	for rows.Next() {
-		var category categories.Category
+		var tag tags.Tag
 
 		fmt.Println("in if")
 		err = rows.Scan(
-			&category.Id,
-			&category.Name,
+			&tag.Id,
+			&tag.Name,
 			&article.Id,
 			&article.Name,
 			&article.Description,
@@ -182,24 +175,18 @@ func (Store) Get(article_id string) (Article, error) {
 			return article, err
 		}
 
-		if category.Id != "" {
-			article.Tags = append(article.Tags, category)
+		if tag.Id != "" {
+			article.Tags = append(article.Tags, tag)
 		}
 	}
 
 	return article, nil
 }
 
-func (Store) Create(article *Article) (string, error) {
-	var new_categories_names QueryArgs
+func (s *Store) Create(data *CreateArticleData) (string, error) {
+	var new_tags_names QueryArgs
 
-	db, err := database.GetDatabase()
-
-	if err != nil {
-		return "", err
-	}
-
-	tx, err := db.Begin()
+	tx, err := s.db.Begin()
 
 	if err != nil {
 		fmt.Printf("error starting transaction: %s\n", err.Error())
@@ -209,7 +196,7 @@ func (Store) Create(article *Article) (string, error) {
 	res, err := tx.Exec(`
 		INSERT INTO articles (name, description)
 		VALUES (?, ?)
-	`, article.Name, article.Description)
+	`, data.Name, data.Description)
 
 	if err != nil {
 		fmt.Printf("error inserting article: %s\n", err.Error())
@@ -219,58 +206,52 @@ func (Store) Create(article *Article) (string, error) {
 	i_article_id, _ := res.LastInsertId()
 	article_id := strconv.Itoa(int(i_article_id))
 
-	var insert_categories_query strings.Builder
+	var insert_tags_query strings.Builder
 
-	insert_categories_query.WriteString("INSERT INTO categories (name) VALUES")
+	insert_tags_query.WriteString("INSERT INTO tags (name) VALUES")
 
-	for i, category := range article.Categories {
-		if category.Id == "" {
-			new_categories_names = append(new_categories_names, category.Name)
+	for i, tag_name := range data.TagNames {
+		new_tags_names = append(new_tags_names, tag_name)
 
-			if i < len(article.Categories)-1 {
-				insert_categories_query.WriteString(" (?),")
-			} else {
-				insert_categories_query.WriteString(" (?) RETURNING id")
-			}
+		if i < len(data.TagNames)-1 {
+			insert_tags_query.WriteString(" (?),")
+		} else {
+			insert_tags_query.WriteString(" (?) RETURNING id")
 		}
 	}
 
-	rows, err := db.Query(insert_categories_query.String(), new_categories_names...)
+	rows, err := s.db.Query(insert_tags_query.String(), new_tags_names...)
+
+	var tag_ids []string
+
+	for _, id := range data.TagNames {
+		tag_ids = append(tag_ids, id)
+	}
 
 	for rows.Next() {
-		var new_category Category
+		var id string
 
-		if err := rows.Scan(
-			&new_category.Id,
-			&new_category.Name,
-			&new_category.CreatedAt,
-			&new_category.UpdatedAt,
-		); err != nil {
+		if err := rows.Scan(&id); err != nil {
 			return "", err
 		}
 
-		for i, c := range article.Categories {
-			if c.Name == new_category.Name {
-				article.Categories[i] = new_category
-				break
-			}
-		}
+		tag_ids = append(tag_ids, id)
 	}
 
 	if e := rows.Close(); e != nil {
-		fmt.Printf("Error closing rows: ", e.Error())
+		fmt.Printf("Error closing rows: %s", e.Error())
 		return "", e
 	}
 
 	var query_sb strings.Builder
 	var insert_pivot_args QueryArgs
 
-	query_sb.WriteString("INSERT INTO articles_categories (category_id, article_id) VALUES")
+	query_sb.WriteString("INSERT INTO articles_tags (tag_id, article_id) VALUES")
 
-	for i, category_id := range article.Categories {
-		insert_pivot_args = append(insert_pivot_args, category_id, article_id)
+	for i, tag_id := range tag_ids {
+		insert_pivot_args = append(insert_pivot_args, tag_id, article_id)
 
-		if i < len(article.Categories)-1 {
+		if i < len(tag_ids)-1 {
 			query_sb.WriteString(" (?, ?),")
 		} else {
 			query_sb.WriteString(" (?, ?)")
@@ -287,27 +268,22 @@ func (Store) Create(article *Article) (string, error) {
 
 	count, _ := res.RowsAffected()
 
-	if int(count) != len(article.Categories) {
+	if int(count) != len(insert_pivot_args) {
 		tx.Rollback()
 		return "", errors.New("One or more rows could not be inserted")
 	}
 
-	if e := tx.Commit(); e != nil {
+	if err = tx.Commit(); err != nil {
 		fmt.Printf("error commiting transaction: %s\n", err.Error())
+
 		return "", err
 	}
 
 	return article_id, nil
 }
 
-func (Store) Delete(article_id string) error {
-	db, err := database.GetDatabase()
-
-	if err != nil {
-		return err
-	}
-
-	tx, err := db.Begin()
+func (s *Store) Delete(article_id string) error {
+	tx, err := s.db.Begin()
 
 	if err != nil {
 		fmt.Printf("Error starting transaction: %s\n", err.Error())
@@ -327,12 +303,12 @@ func (Store) Delete(article_id string) error {
 
 	relationships_tables := []string{
 		"articles_images",
-		"articles_categories",
+		"articles_tags",
 	}
 
 	for _, table := range relationships_tables {
 		_, err = tx.Exec(`
-			UPDATE articles_categories
+			UPDATE articles_tags
 			SET deleted_at = current_timestamp 
 			WHERE article_id = ?
 		`, article_id)

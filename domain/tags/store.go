@@ -1,38 +1,46 @@
 package tags
 
-import "github.com/yogusita/to-adhdo/database"
+import (
+	"database/sql"
+	"strings"
+)
 
 type Store struct {
+	db *sql.DB
 }
 
-func (Store) List(limit int8, include_deleted bool) ([]Category, error) {
-	if limit == 0 {
-		limit = 10
+func CreateStore(db *sql.DB) *Store {
+	return &Store{db}
+}
+
+func (s *Store) List(options ListingTagsOptions) ([]Tag, error) {
+	if options.Limit == 0 {
+		options.Limit = 100
 	}
 
-	db, err := database.GetDatabase()
+	var sb_query strings.Builder
 
-	if err != nil {
-		// TODO: handle error
-		return nil, err
-	}
-
-	var tags []Category
-
-	rows, err := db.Query(`
+	sb_query.WriteString(`
 		SELECT id, name, created_at, updated_at, deleted_at
-		FROM task_tags
-		WHERE deleted_at IS NULL
-		LIMIT ?
-	`, limit)
+		FROM tags
+	`)
+
+	if !options.IncludeDeleted {
+		sb_query.WriteString(" WHERE deleted_at IS NULL ")
+	}
+
+	sb_query.WriteString(" LIMIT ? OFFSET ? ;")
+
+	rows, err := s.db.Query(sb_query.String(), options.Limit, options.Offset)
 
 	if err != nil {
 		// TODO: handle error
 		return nil, err
 	}
 
+	var tags []Tag
 	for rows.Next() {
-		var tag Category
+		var tag Tag
 
 		rows.Scan(
 			&tag.Id,

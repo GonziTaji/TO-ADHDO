@@ -9,11 +9,6 @@ type BaseRecord struct {
 	DeletedAt string
 }
 
-type Category struct {
-	BaseRecord
-	Name string
-}
-
 type Image struct {
 	BaseRecord
 	Path string
@@ -24,7 +19,6 @@ type Article struct {
 	BaseRecord
 	Name        string
 	Description string
-	Tags        []tags.Category
-	Categories  []Category
+	Tags        []tags.Tag
 	Images      []Image
 }

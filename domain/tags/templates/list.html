@@ -1,0 +1,23 @@
+{{ define "tags/list" }}
+<!doctype>
+
+<html>
+
+<head>
+    <title>Tags</title>
+    {{ template "meta_tags" }}
+</head>
+
+<body>
+    <div id="tags_list">
+        <ul>
+            {{ range . }}
+            <li data-record-id="{{.Id}}">{{.Name}}</li>
+            {{ end }}
+        </ul>
+    </div>
+</body>
+
+</html>
+
+{{ end }}

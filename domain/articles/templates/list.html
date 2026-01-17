@@ -1,0 +1,56 @@
+{{ define "articles/list" }}
+<!doctype>
+<html>
+
+<head>
+    <title>Articles</title>
+    <script type="module" src="/public/lib/articles/list.js"></script>
+
+    {{ template "meta_tags" }}
+</head>
+
+<body>
+    <div data-component="articles-list">
+        <button data-action="new" type="button">New</button>
+
+        <ul>
+            {{ range .}}
+            {{ template "articles_list_item" . }}
+            {{end}}
+        </ul>
+    </div>
+
+    <dialog data-component="confirm-delete-article-dialog">
+        <span>Do you want to <strong>DELETE</strong> this article?</span>
+
+        <div>
+            <button type="button" data-action="cancel">No, take me back</button>
+            <button type="button" data-action="confirm">Yes, delete the article</button>
+        </div>
+    </dialog>
+</body>
+
+</html>
+{{ end }}
+
+{{ define "articles_list_item" }}
+<li data-component="articles-list-item">
+    <span>{{ .Name }}</span>
+
+    <div>
+        <button type="button" data-action="view" data-article-id={{.Id}}>View</button>
+        <button type="button" data-action="edit" data-article-id={{.Id}}>Edit</button>
+        <button type="button" data-action="delete" data-article-id={{.Id}}>Delete</button>
+    </div>
+
+    <br />
+
+    <ul>
+        {{ range .Tags }}
+        <li>
+            <span>{{ .Name }}</span>
+        </li>
+        {{ end }}
+    </ul>
+</li>
+{{ end }}

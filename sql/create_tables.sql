@@ -18,7 +18,7 @@ CREATE TABLE if not exists articles_images (
     deleted_at TEXT DEFAULT NULL
 );
 
-CREATE TABLE if not exists categories (
+CREATE TABLE if not exists tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
     created_at TEXT DEFAULT current_timestamp NOT NULL,
@@ -26,10 +26,10 @@ CREATE TABLE if not exists categories (
     deleted_at TEXT DEFAULT NULL
 );
 
-CREATE TABLE if not exists articles_categories (
+CREATE TABLE if not exists articles_tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     article_id INTEGER NOT NULL,
-    category_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
     created_at TEXT DEFAULT current_timestamp NOT NULL,
     updated_at TEXT DEFAULT current_timestamp NOT NULL,
     deleted_at TEXT DEFAULT NULL,
@@ -38,10 +38,10 @@ CREATE TABLE if not exists articles_categories (
     REFERENCES articles(id)
     ON DELETE CASCADE,
 
-    FOREIGN KEY (category_id)
-    REFERENCES categories(id)
+    FOREIGN KEY (tag_id)
+    REFERENCES tags(id)
     ON DELETE CASCADE,
 
-    UNIQUE (category_id, article_id, deleted_at)
+    UNIQUE (tag_id, article_id, deleted_at)
 );
 

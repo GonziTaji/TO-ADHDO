@@ -1,16 +1,23 @@
 package articles
 
 import (
+	"database/sql"
+
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(router *gin.RouterGroup) {
-	c := Controller{}
+func RegisterRoutes(router *gin.Engine, db *sql.DB) {
+	store := CreateStore(db)
+	controller := CreateController(store, &Views{})
 
 	group := router.Group("articles")
 
-	group.GET("/", c.GetListHandler)
-	group.GET("/:article_id/:view_id", c.GetHandler)
-	group.POST("/", c.CreateHandler)
-	group.DELETE("/:article_id", c.DeleteHandler)
+	group.GET("/", controller.GetListHandler)
+	group.GET("/new", controller.GetFormHandler)
+	group.GET("/:article_id", controller.GetHandler)
+	group.GET("/:article_id/edit", controller.GetFormHandler)
+
+	group.POST("/", controller.CreateHandler)
+
+	group.DELETE("/:article_id", controller.DeleteHandler)
 }

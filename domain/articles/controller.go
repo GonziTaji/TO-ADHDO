@@ -1,16 +1,28 @@
 package articles
 
 import (
-	"fmt"
+	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Controller struct{
-	store Store
-	views Views
+type RenderArticleViewOptions struct {
+	ArticleId string `uri:"article_id" binding:"required"`
+	ViewName  string `uri:"view_name" binding:"required"`
+}
+
+type ListingArticlesOptions struct {
+	Limit          int8 `query:"limit"`
+	Offset         int8 `query:"offset"`
+	IncludeDeleted bool `query:"include_deleted"`
+}
+
+type CreateArticleData struct {
+	Name        string   `form:"name" binding:"required"`
+	Description string   `form:"description"`
+	TagNames    []string `form:"tags_names"` // Names for new tags for the new article
+	TagIds      []string `form:"tags_ids"`   // Ids of existing tags for the new article
 }
 
 type CreateArticleResponse struct {
@@ -18,119 +30,115 @@ type CreateArticleResponse struct {
 	CreatedAt string
 }
 
-func NewArticlesController(store Store, views Views) *Controller {
-	return &ArticlesController{
-		store, views
-	}
+type Controller struct {
+	store *Store
+	views *Views
 }
 
-func (Controller) GetHandler(c *gin.Context) {
-	article_id := c.Params.ByName("article_id")
+func CreateController(store *Store, views *Views) *Controller {
+	return &Controller{store, views}
+}
 
-	article, err := controller.Get(article_id)
+func (c *Controller) GetHandler(ctx *gin.Context) {
+	var options RenderArticleViewOptions
+
+	if err := ctx.ShouldBindUri(&options); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	article, err := c.store.Get(options.ArticleId)
 
 	if err != nil {
-		c.String(http.StatusInternalServerError, "ERROR: "+err.Error())
+		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if article.Id == "" {
-		c.Status(http.StatusNotFound)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
-	view_name := c.Params.ByName("view_name")
-
-	fmt.Printf("VIEW NAME: %s\n", view_name)
-
-	switch view_name {
+	switch options.ViewName {
 	case "list-item":
-		err = views.AsListItem(c.Writer, article)
+		err = c.views.AsListItem(ctx.Writer, article)
 	default:
-		c.String(http.StatusBadRequest, "invalid view name: \"%s\"", view_name)
+		ctx.String(http.StatusBadRequest, "invalid view name: \"%s\"", options.ViewName)
 		return
 	}
 
 	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
 	}
 }
 
-func (Controller) GetListHandler(c *gin.Context) {
-	limit := 10
+func (c *Controller) GetFormHandler(ctx *gin.Context) {
+	article_id := ctx.Param("article_id")
 
-	if limit_query := c.Query("limit"); limit_query != "" {
-		l, err := strconv.Atoi(limit_query)
+	var article Article
 
-		if err == nil {
-			limit = l
-		} else {
-			fmt.Printf("error parsing queryparam `limit`: %s\n", err.Error())
+	if article_id != "" {
+		var err error
+		article, err = c.store.Get(article_id)
+
+		if err != nil {
+			ctx.String(http.StatusBadRequest, err.Error())
+			return
 		}
 	}
 
-	articles, err := store.List(int8(limit), false)
-
-	if err != nil {
-		// TODO: Template para error cargando componente con reintento
-		c.String(http.StatusBadRequest, "ERROR: "+err.Error())
-		return
-	}
-
-	c.HTML(http.StatusOK, "articles_list.html", articles)
+	ctx.HTML(http.StatusOK, "articles/form", article)
 }
 
-func (Controller) DeleteHandler(c *gin.Context) {
-	article_id, exists := c.Params.Get("article_id")
+func (c *Controller) GetListHandler(ctx *gin.Context) {
+	var options ListingArticlesOptions
 
-	if !exists || article_id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "malformed url",
-		})
-
+	if err := ctx.ShouldBindQuery(&options); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err := store.Delete(article_id)
+	articles, err := c.store.List(&options)
+
+	log.Printf("articles in list: %v", articles)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
+		ctx.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{})
+	ctx.HTML(http.StatusOK, "articles/list", articles)
 }
 
-func (Controller) CreateHandler(c *gin.Context) {
-	categories := c.PostFormArray("categories")
+func (c *Controller) DeleteHandler(ctx *gin.Context) {
+	article_id := ctx.Param("article_id")
 
-	new_article := Article{
-		Name:        c.PostForm("name"),
-		Description: c.PostForm("description"),
-		Categories:  []Category{},
-	}
-
-	if new_article.Name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "field 'name' is required",
-		})
-
+	if article_id == "" {
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
 
-	for _, category_data := range categories {
+	if err := c.store.Delete(article_id); err != nil {
+		ctx.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+}
 
+func (c *Controller) CreateHandler(ctx *gin.Context) {
+	var form CreateArticleData
+
+	if err := ctx.Bind(&form); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
 	}
 
-	err := store.Create(name, description, article_tags_names)
+	article_id, err := c.store.Create(&form)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-
+		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"id": article_id})
+	ctx.JSON(http.StatusCreated, gin.H{"id": article_id})
 }

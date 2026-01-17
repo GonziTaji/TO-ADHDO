@@ -1,0 +1,33 @@
+{{ define "articles/form" }}
+<!doctype>
+<html>
+
+<head>
+    <title>New article</title>
+    <script type="module" src="/public/lib/articles/form.js"></script>
+
+    {{ template "meta_tags" }}
+</head>
+
+<body>
+    <form data-component="articles-form">
+        <input type="hidden" name="id" value="{{.Id}}" />
+
+        <div>
+            <label for="name">Name: </label>
+            <input type="text" id="name" name="name" value="{{.Name}}" placeholder="name" required />
+        </div>
+
+        <div>
+            <label for="desription">Description: </label>
+            <textarea type="text" cols="3" name="description" placeholder="description">
+                {{.Description}}
+            </textarea>
+        </div>
+
+        <button type="submit">Save article</button>
+    </form>
+</body>
+
+</html>
+{{ end }}

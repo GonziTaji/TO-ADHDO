@@ -7,7 +7,7 @@ import (
 
 type Views struct{}
 
-func (Views) AsListItem(w io.Writer, article Article) error {
+func (v *Views) AsListItem(w io.Writer, article Article) error {
 	tmpl, err := template.ParseFiles("public/lib/components/articles_list/template.html")
 
 	if err != nil {
