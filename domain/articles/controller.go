@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
 type RenderArticleViewOptions struct {
@@ -31,12 +32,13 @@ type CreateArticleResponse struct {
 }
 
 type Controller struct {
-	store *Store
-	views *Views
+	store      *Store
+	views      *Views
+	tagsStore  *tags.Store
 }
 
-func CreateController(store *Store, views *Views) *Controller {
-	return &Controller{store, views}
+func CreateController(store *Store, views *Views, tagsStore *tags.Store) *Controller {
+	return &Controller{store, views, tagsStore}
 }
 
 func (c *Controller) GetHandler(ctx *gin.Context) {
@@ -88,7 +90,17 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 		}
 	}
 
-	ctx.HTML(http.StatusOK, "articles/form", article)
+	// Get all available tags for the form
+	tagOptions, err := c.tagsStore.List(tags.ListingTagsOptions{})
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Create form data with both article and tag options
+	formData := NewFormData(article, tagOptions)
+
+	ctx.HTML(http.StatusOK, "articles/form", formData)
 }
 
 func (c *Controller) GetListHandler(ctx *gin.Context) {

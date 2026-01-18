@@ -4,11 +4,13 @@ import (
 	"database/sql"
 
 	"github.com/gin-gonic/gin"
+	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
 func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	store := CreateStore(db)
-	controller := CreateController(store, &Views{})
+	tagsStore := tags.CreateStore(db)
+	controller := CreateController(store, &Views{}, tagsStore)
 
 	group := router.Group("articles")
 

@@ -10,22 +10,20 @@
 </head>
 
 <body>
-    <div data-component="articles-list">
-        <button data-action="new" type="button">New</button>
+    <button data-action="new" type="button">New</button>
 
-        <ul>
-            {{ range .}}
-            {{ template "articles_list_item" . }}
-            {{end}}
-        </ul>
-    </div>
+    <ul>
+        {{ range .}}
+        {{ template "articles_list_item" . }}
+        {{end}}
+    </ul>
 
-    <dialog data-component="confirm-delete-article-dialog">
+    <dialog data-component="delete-dialog">
         <span>Do you want to <strong>DELETE</strong> this article?</span>
 
         <div>
-            <button type="button" data-action="cancel">No, take me back</button>
-            <button type="button" data-action="confirm">Yes, delete the article</button>
+            <button type="button" data-action="cancel-delete">No, take me back</button>
+            <button type="button" data-action="confirm-delete">Yes, delete the article</button>
         </div>
     </dialog>
 </body>
@@ -38,9 +36,9 @@
     <span>{{ .Name }}</span>
 
     <div>
-        <button type="button" data-action="view" data-article-id={{.Id}}>View</button>
-        <button type="button" data-action="edit" data-article-id={{.Id}}>Edit</button>
-        <button type="button" data-action="delete" data-article-id={{.Id}}>Delete</button>
+        <button type="button" data-action="view" data-articleid={{.Id}}>View</button>
+        <button type="button" data-action="edit" data-articleid={{.Id}}>Edit</button>
+        <button type="button" data-action="delete" data-articleid={{.Id}}>Delete</button>
     </div>
 
     <br />

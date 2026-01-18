@@ -20,13 +20,44 @@
 
         <div>
             <label for="desription">Description: </label>
-            <textarea type="text" cols="3" name="description" placeholder="description">
+            <textarea type="text" cols="3" id="description" name="description" placeholder="description">
                 {{.Description}}
             </textarea>
         </div>
 
+
+        <div>
+            <label for="tag_search">Tags:</label>
+
+            <ul data-component="selected-tags-list"></ul>
+
+            <input name="tag_search" id="tag_search" type="text" list="datalist-available-tags" />
+
+            <ul data-component="suggested-tags-list"></ul>
+        </div>
+
+        <datalist id="datalist-available-tags">
+            {{ range .TagOptions }}
+            <option value="{{.Id}}">{{.Name}}</option>
+            {{ end }}
+        </datalist>
+
         <button type="submit">Save article</button>
     </form>
+
+    <template data-component="selected-tag-template">
+        <li>
+            <input type="text" name="tags_names" readonly />
+            <input type="hidden" name="tags_ids" readonly />
+            <button data-action="remove-tag" data-tagid="" type="button"> &times; </button>
+        </li>
+    </template>
+
+    <template data-component="suggested-tag-template">
+        <li>
+            <button data-action="add-tag" data-tagid="" type="button"></button>
+        </li>
+    </template>
 </body>
 
 </html>
