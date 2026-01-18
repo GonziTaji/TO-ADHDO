@@ -301,6 +301,122 @@ func (s *Store) Create(article *Article) (string, error) {
 	return article_id, nil
 }
 
+func (s *Store) Update(article *Article) error {
+	var new_tags_names QueryArgs
+
+	tx, err := s.db.Begin()
+
+	if err != nil {
+		fmt.Printf("error starting transaction: %s\n", err.Error())
+		return err
+	}
+
+	res, err := tx.Exec(`
+		UPDATE articles SET
+			name = ?,
+			description = ?,
+			updated_at = current_timestamp
+		WHERE id = ?
+	`, article.Name, article.Description, article.Id)
+
+	if err != nil {
+		fmt.Printf("error updating article: %s\n", err.Error())
+		return err
+	}
+
+	var insert_tags_query strings.Builder
+
+	insert_tags_query.WriteString("INSERT INTO tags (name) VALUES")
+
+	var tag_ids []string
+
+	fmt.Printf("tasdf %v\n", article.Tags)
+
+	for i, tag := range article.Tags {
+		fmt.Printf("inside for\n")
+		if tag.Id == "" {
+			fmt.Printf("inside if\n")
+			new_tags_names = append(new_tags_names, tag.Name)
+
+			if i < len(article.Tags)-1 {
+				insert_tags_query.WriteString(" (?),")
+			} else {
+				insert_tags_query.WriteString(" (?) RETURNING id")
+			}
+		} else {
+			fmt.Printf("inside else\n")
+			tag_ids = append(tag_ids, tag.Id)
+		}
+	}
+
+	if len(new_tags_names) > 0 {
+		log.Printf("query: \n%s\n", insert_tags_query.String())
+
+		rows, err := s.db.Query(insert_tags_query.String(), new_tags_names...)
+
+		if err != nil {
+			return err
+		}
+
+		for rows.Next() {
+			var id string
+
+			if err := rows.Scan(&id); err != nil {
+				return err
+			}
+
+			tag_ids = append(tag_ids, id)
+		}
+
+		if err := rows.Close(); err != nil {
+			fmt.Printf("Error closing rows: %s", err.Error())
+			return err
+		}
+	}
+
+	var query_sb strings.Builder
+	var insert_pivot_args QueryArgs
+
+	query_sb.WriteString("INSERT INTO articles_tags (tag_id, article_id) VALUES")
+
+	for i, tag_id := range tag_ids {
+		insert_pivot_args = append(insert_pivot_args, tag_id, article.Id)
+
+		if i < len(tag_ids)-1 {
+			query_sb.WriteString(" (?, ?),")
+		} else {
+			query_sb.WriteString(" (?, ?)")
+		}
+	}
+
+	log.Printf("query: \n%s\n", query_sb.String())
+
+	res, err = tx.Exec(query_sb.String(), insert_pivot_args...)
+
+	if err != nil {
+		tx.Rollback()
+		fmt.Printf("error inserting pivot table: %s\n", err.Error())
+		return err
+	}
+
+	count, _ := res.RowsAffected()
+
+	log.Printf("count: %d, pivot_args: %d", count, len(insert_pivot_args))
+
+	if int(count) != len(insert_pivot_args)/2 {
+		tx.Rollback()
+		return errors.New("One or more rows could not be inserted")
+	}
+
+	if err = tx.Commit(); err != nil {
+		fmt.Printf("error commiting transaction: %s\n", err.Error())
+
+		return err
+	}
+
+	return nil
+}
+
 func (s *Store) Delete(article_id string) error {
 	tx, err := s.db.Begin()
 

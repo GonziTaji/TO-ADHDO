@@ -27,7 +27,11 @@
         <div>
             <label for="tag_search">Tags:</label>
 
-            <ul data-component="selected-tags-list"></ul>
+            <ul data-component="selected-tags-list">
+                {{ range .Article.Tags }}
+                {{ template "selected-tag-template" . }}
+                {{ end }}
+            </ul>
 
             <input name="tag_search" id="tag_search" type="text" list="datalist-available-tags" />
 
@@ -44,11 +48,7 @@
     </form>
 
     <template data-component="selected-tag-template">
-        <li>
-            <input type="text" name="tags_names" readonly />
-            <input type="hidden" name="tags_ids" readonly />
-            <button data-action="remove-tag" type="button"> &times; </button>
-        </li>
+        {{ template "selected-tag-template" }}
     </template>
 
     <template data-component="suggested-tag-template">
@@ -56,9 +56,15 @@
             <button data-action="add-tag" data-tagid="" type="button"></button>
         </li>
     </template>
-
-    <script>console.log({{.}})</script>
 </body>
 
 </html>
+{{ end }}
+
+{{ define "selected-tag-template" }}
+<li>
+    <input type="text" name="tags_names" value={{.Name}} readonly />
+    <input type="hidden" name="tags_ids" value={{.Id}} readonly />
+    <button data-action="remove-tag" type="button"> &times; </button>
+</li>
 {{ end }}

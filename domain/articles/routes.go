@@ -20,6 +20,6 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	group.GET("/:article_id/edit", controller.GetFormHandler)
 
 	group.POST("/", controller.CreateHandler)
-
+	group.PUT("/:article_id", controller.UpdateHandler)
 	group.DELETE("/:article_id", controller.DeleteHandler)
 }

@@ -31,6 +31,11 @@ type CreateArticleData struct {
 	TagIds      []string `form:"tags_ids"`
 }
 
+type UpdateArticleData struct {
+	Id string `form:"id"`
+	CreateArticleData
+}
+
 type CreateArticleResponse struct {
 	Id        string
 	CreatedAt string
@@ -154,6 +159,41 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 	}
 
 	new_article := Article{
+		Name:        form.Name,
+		Description: form.Description,
+		Tags:        []tags.Tag{},
+	}
+
+	// should this be in a "service" layer?
+	for i, name := range form.TagNames {
+		tag := tags.Tag{
+			Id:   form.TagIds[i],
+			Name: name,
+		}
+
+		new_article.Tags = append(new_article.Tags, tag)
+	}
+
+	article_id, err := c.store.Create(&new_article)
+
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"id": article_id})
+}
+
+func (c *Controller) UpdateHandler(ctx *gin.Context) {
+	var form UpdateArticleData
+
+	if err := ctx.Bind(&form); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	new_article := Article{
+		Id:          form.Id,
 		Name:        form.Name,
 		Description: form.Description,
 		Tags:        []tags.Tag{},

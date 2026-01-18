@@ -79,9 +79,20 @@ function addTag(tag_name) {
 async function formSubmitHandler(ev) {
     ev.preventDefault()
 
-    const data = new FormData(ev.currentTarget)
+    const body = new FormData(ev.currentTarget)
 
-    const response = await fetch("/articles", { method: 'POST', body: data })
+    let endpoint = "/articles"
+
+    const article_id = body.get("id")
+
+    let method = "POST"
+
+    if (article_id != "") {
+        endpoint += "/" + article_id
+        method = "PUT"
+    }
+
+    const response = await fetch(endpoint, { method, body })
 
     if (!response.ok) {
         alert('Uh oh! ewrorw:' + await response.text())
