@@ -1,3 +1,4 @@
+import { getFirstChildCopyFromTemplate } from "../utils/teststs.js"
 
 document.addEventListener("DOMContentLoaded", init)
 
@@ -28,7 +29,7 @@ function bindEvents() {
                 addTag(ds.tagid)
                 break
             case 'remove-tag':
-                removeTag(btn.closest('li'), ds.tagid)
+                removeTag(btn.closest('li'))
                 break
         }
     })
@@ -39,57 +40,55 @@ function bindEvents() {
 }
 
 /**
- * @param {HTMLElement} container
+ * @param {HTMLElement} tag_container
  * @param {string} tag_id
  */
-function removeTag(container, tag_id) {
-    container.remove()
+function removeTag(tag_container) {
+    const tag_id = tag_container.querySelector('input[name="tags_ids"]').value
+
+    tag_container.remove()
 
     if (tag_id) {
-        getTagOption(tag_id).disabled = false
+        getTagOptionById(tag_id).disabled = false
     }
 }
 
-/** @param {string} tag_id */
-function addTag(tag_id) {
+/** @param {string} tag_name */
+function addTag(tag_name) {
+    const tag_option = getTagOptionByName(tag_name)
+
     /** @type {HTMLElement} */
     const template = document.querySelector('template[data-component="selected-tag-template"]')
-    const new_tag_node = template.content.cloneNode(true).firstChild;
-
-    new_tag_node.querySelector('input[name="tags_names"]').value = getTagOption(tag_id).innerText
-    new_tag_node.querySelector('input[name="tags_ids"]').value = tag_id
-
-    document
-        .querySelector('[data-component="selected-tags-list"]')
-        .appendChild(new_tag_node)
-
-    getTagOption(tag_id).disabled = true
-}
-
-/** @param {string} tag_name */
-function addNewTag(tag_name) {
-    /** @type {HTMLTemplateElement} */
-    const template = document.querySelector('template[data-component="selected-tag-template"]')
-    const new_tag_node = template.content.cloneNode(true).firstChild;
+    const new_tag_node = getFirstChildCopyFromTemplate(template)
 
     new_tag_node.querySelector('input[name="tags_names"]').value = tag_name
 
+    if (tag_option) {
+        tag_option.disabled = true
+        new_tag_node.querySelector('input[name="tags_ids"]').value = tag_option.dataset.tagid
+    }
+
     document
         .querySelector('[data-component="selected-tags-list"]')
         .appendChild(new_tag_node)
+
+    document.querySelector('#tag_search').value = ""
 }
 
 /** @param {SubmitEvent} ev */
-function formSubmitHandler(ev) {
+async function formSubmitHandler(ev) {
     ev.preventDefault()
 
     const data = new FormData(ev.currentTarget)
 
-    // const name = data.get("name")
-    // const description = data.get("description")
-    // const id = data.get("id")
+    const response = await fetch("/articles", { method: 'POST', body: data })
 
-    console.log(data)
+    if (!response.ok) {
+        alert('Uh oh! ewrorw:' + await response.text())
+        return
+    }
+
+    console.log(await response.text())
 }
 
 /** @param {string} search_term */
@@ -121,8 +120,7 @@ function tagSearchChangeHandler(search_term) {
     )
 
     for (const tag of filtered_tags) {
-
-        const suggested_tag_node = template.content.cloneNode(true).firstChild;
+        const suggested_tag_node = getFirstChildCopyFromTemplate(template)
 
         /** @type {HTMLButtonElement} */
         const add_button = suggested_tag_node.querySelector('button[data-action="add-tag"]')
@@ -146,12 +144,7 @@ function tagSearchKeyDownHandler(ev) {
     if (ev.key === "Enter" || ev.key === "Tab") {
         ev.preventDefault();
 
-        const option = getTagOptionByName(value)
-        if (option) {
-            addTag(option.value)
-        } else {
-            addNewTag(value)
-        }
+        addTag(value)
     }
 }
 
@@ -159,9 +152,9 @@ function tagSearchKeyDownHandler(ev) {
  * @param {string} tag_id
  * @returns {HTMLOptionElement
  */
-function getTagOptionByValue(tag_id) {
+function getTagOptionById(tag_id) {
     const option = document.querySelector(
-        `datalist#datalist-available-tags option[value="${tag_id}"]`
+        `datalist#datalist-available-tags option[data-tagid="${tag_id}"]`
     )
 
     return option
@@ -172,10 +165,9 @@ function getTagOptionByValue(tag_id) {
  * @returns {HTMLOptionElement | undefined}
  */
 function getTagOptionByName(tag_name) {
-    const option = Array.from(document.querySelectorAll(
-        'datalist#datalist-available-tags option'
-    ))
-        .find(opt => opt.innerText.trim().toLowerCase() == tag_name)
+    const option = document.querySelector(
+        `datalist#datalist-available-tags option[value="${tag_name}"]`
+    )
 
     return option
 }

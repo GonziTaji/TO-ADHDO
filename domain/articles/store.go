@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -183,7 +184,7 @@ func (s *Store) Get(article_id string) (Article, error) {
 	return article, nil
 }
 
-func (s *Store) Create(data *CreateArticleData) (string, error) {
+func (s *Store) Create(article *Article) (string, error) {
 	var new_tags_names QueryArgs
 
 	tx, err := s.db.Begin()
@@ -196,7 +197,7 @@ func (s *Store) Create(data *CreateArticleData) (string, error) {
 	res, err := tx.Exec(`
 		INSERT INTO articles (name, description)
 		VALUES (?, ?)
-	`, data.Name, data.Description)
+	`, article.Name, article.Description)
 
 	if err != nil {
 		fmt.Printf("error inserting article: %s\n", err.Error())
@@ -210,37 +211,50 @@ func (s *Store) Create(data *CreateArticleData) (string, error) {
 
 	insert_tags_query.WriteString("INSERT INTO tags (name) VALUES")
 
-	for i, tag_name := range data.TagNames {
-		new_tags_names = append(new_tags_names, tag_name)
+	var tag_ids []string
 
-		if i < len(data.TagNames)-1 {
-			insert_tags_query.WriteString(" (?),")
+	fmt.Printf("tasdf %v\n", article.Tags)
+
+	for i, tag := range article.Tags {
+		fmt.Printf("inside for\n")
+		if tag.Id == "" {
+			fmt.Printf("inside if\n")
+			new_tags_names = append(new_tags_names, tag.Name)
+
+			if i < len(article.Tags)-1 {
+				insert_tags_query.WriteString(" (?),")
+			} else {
+				insert_tags_query.WriteString(" (?) RETURNING id")
+			}
 		} else {
-			insert_tags_query.WriteString(" (?) RETURNING id")
+			fmt.Printf("inside else\n")
+			tag_ids = append(tag_ids, tag.Id)
 		}
 	}
 
-	rows, err := s.db.Query(insert_tags_query.String(), new_tags_names...)
+	if len(new_tags_names) > 0 {
+		log.Printf("query: \n%s\n", insert_tags_query.String())
 
-	var tag_ids []string
+		rows, err := s.db.Query(insert_tags_query.String(), new_tags_names...)
 
-	for _, id := range data.TagNames {
-		tag_ids = append(tag_ids, id)
-	}
-
-	for rows.Next() {
-		var id string
-
-		if err := rows.Scan(&id); err != nil {
+		if err != nil {
 			return "", err
 		}
 
-		tag_ids = append(tag_ids, id)
-	}
+		for rows.Next() {
+			var id string
 
-	if e := rows.Close(); e != nil {
-		fmt.Printf("Error closing rows: %s", e.Error())
-		return "", e
+			if err := rows.Scan(&id); err != nil {
+				return "", err
+			}
+
+			tag_ids = append(tag_ids, id)
+		}
+
+		if e := rows.Close(); e != nil {
+			fmt.Printf("Error closing rows: %s", e.Error())
+			return "", e
+		}
 	}
 
 	var query_sb strings.Builder
@@ -249,6 +263,7 @@ func (s *Store) Create(data *CreateArticleData) (string, error) {
 	query_sb.WriteString("INSERT INTO articles_tags (tag_id, article_id) VALUES")
 
 	for i, tag_id := range tag_ids {
+		fmt.Printf("in for tag_ids. tag_id: %s, article_id: %s", tag_id, article_id)
 		insert_pivot_args = append(insert_pivot_args, tag_id, article_id)
 
 		if i < len(tag_ids)-1 {
@@ -257,6 +272,8 @@ func (s *Store) Create(data *CreateArticleData) (string, error) {
 			query_sb.WriteString(" (?, ?)")
 		}
 	}
+
+	log.Printf("query: \n%s\n", query_sb.String())
 
 	res, err = tx.Exec(query_sb.String(), insert_pivot_args...)
 
@@ -268,7 +285,9 @@ func (s *Store) Create(data *CreateArticleData) (string, error) {
 
 	count, _ := res.RowsAffected()
 
-	if int(count) != len(insert_pivot_args) {
+	log.Printf("count: %d, pivot_args: %d", count, len(insert_pivot_args))
+
+	if int(count) != len(insert_pivot_args)/2 {
 		tx.Rollback()
 		return "", errors.New("One or more rows could not be inserted")
 	}

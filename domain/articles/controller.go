@@ -8,6 +8,11 @@ import (
 	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
+type ArticleFormData struct {
+	Article    Article
+	TagOptions []tags.Tag
+}
+
 type RenderArticleViewOptions struct {
 	ArticleId string `uri:"article_id" binding:"required"`
 	ViewName  string `uri:"view_name" binding:"required"`
@@ -22,8 +27,8 @@ type ListingArticlesOptions struct {
 type CreateArticleData struct {
 	Name        string   `form:"name" binding:"required"`
 	Description string   `form:"description"`
-	TagNames    []string `form:"tags_names"` // Names for new tags for the new article
-	TagIds      []string `form:"tags_ids"`   // Ids of existing tags for the new article
+	TagNames    []string `form:"tags_names"`
+	TagIds      []string `form:"tags_ids"`
 }
 
 type CreateArticleResponse struct {
@@ -32,9 +37,9 @@ type CreateArticleResponse struct {
 }
 
 type Controller struct {
-	store      *Store
-	views      *Views
-	tagsStore  *tags.Store
+	store     *Store
+	views     *Views
+	tagsStore *tags.Store
 }
 
 func CreateController(store *Store, views *Views, tagsStore *tags.Store) *Controller {
@@ -90,15 +95,18 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 		}
 	}
 
-	// Get all available tags for the form
 	tagOptions, err := c.tagsStore.List(tags.ListingTagsOptions{})
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Create form data with both article and tag options
-	formData := NewFormData(article, tagOptions)
+	log.Printf("options: %v\n", tagOptions)
+
+	formData := ArticleFormData{
+		Article:    article,
+		TagOptions: tagOptions,
+	}
 
 	ctx.HTML(http.StatusOK, "articles/form", formData)
 }
@@ -145,7 +153,23 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 		return
 	}
 
-	article_id, err := c.store.Create(&form)
+	new_article := Article{
+		Name:        form.Name,
+		Description: form.Description,
+		Tags:        []tags.Tag{},
+	}
+
+	// should this be in a "service" layer?
+	for i, name := range form.TagNames {
+		tag := tags.Tag{
+			Id:   form.TagIds[i],
+			Name: name,
+		}
+
+		new_article.Tags = append(new_article.Tags, tag)
+	}
+
+	article_id, err := c.store.Create(&new_article)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())

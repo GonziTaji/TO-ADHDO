@@ -11,20 +11,18 @@
 
 <body>
     <form data-component="articles-form">
-        <input type="hidden" name="id" value="{{.Id}}" />
+        <input type="hidden" name="id" value="{{.Article.Id}}" />
 
         <div>
             <label for="name">Name: </label>
-            <input type="text" id="name" name="name" value="{{.Name}}" placeholder="name" required />
+            <input type="text" id="name" name="name" value="{{.Article.Name}}" placeholder="name" required />
         </div>
 
         <div>
             <label for="desription">Description: </label>
-            <textarea type="text" cols="3" id="description" name="description" placeholder="description">
-                {{.Description}}
-            </textarea>
+            <textarea type="text" cols="3" id="description" name="description"
+                placeholder="description">{{.Article.Description}}</textarea>
         </div>
-
 
         <div>
             <label for="tag_search">Tags:</label>
@@ -38,7 +36,7 @@
 
         <datalist id="datalist-available-tags">
             {{ range .TagOptions }}
-            <option value="{{.Id}}">{{.Name}}</option>
+            <option value="{{.Name}}" data-tagid="{{.Id}}"></option>
             {{ end }}
         </datalist>
 
@@ -49,7 +47,7 @@
         <li>
             <input type="text" name="tags_names" readonly />
             <input type="hidden" name="tags_ids" readonly />
-            <button data-action="remove-tag" data-tagid="" type="button"> &times; </button>
+            <button data-action="remove-tag" type="button"> &times; </button>
         </li>
     </template>
 
@@ -58,6 +56,8 @@
             <button data-action="add-tag" data-tagid="" type="button"></button>
         </li>
     </template>
+
+    <script>console.log({{.}})</script>
 </body>
 
 </html>
