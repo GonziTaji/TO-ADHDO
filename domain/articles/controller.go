@@ -8,9 +8,15 @@ import (
 	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
+type TagOption struct {
+	Id       string
+	Name     string
+	Disabled bool
+}
+
 type ArticleFormData struct {
 	Article    Article
-	TagOptions []tags.Tag
+	TagOptions []TagOption
 }
 
 type RenderArticleViewOptions struct {
@@ -100,17 +106,39 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 		}
 	}
 
-	tagOptions, err := c.tagsStore.List(tags.ListingTagsOptions{})
+	tags, err := c.tagsStore.List(tags.ListingTagsOptions{})
+	tag_options := make([]TagOption, len(tags))
+
+	tags_ids_in_article := make(map[string]bool, len(tags))
+
+	for _, tag := range article.Tags {
+		log.Printf("adding tag id %s to map\n", tag.Id)
+		tags_ids_in_article[tag.Id] = true
+	}
+
+	log.Printf("final map: %v\n", tags_ids_in_article)
+
+	for i, tag := range tags {
+		log.Printf("checking if option of tag id %s is disabled\n", tag.Id)
+		log.Printf(" >>> map[%s] = %v\n", tag.Id, tags_ids_in_article[tag.Id])
+
+		tag_options[i] = TagOption{
+			Name:     tag.Name,
+			Id:       tag.Id,
+			Disabled: tags_ids_in_article[tag.Id],
+		}
+	}
+
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	log.Printf("options: %v\n", tagOptions)
+	log.Printf("options: %v\n", tag_options)
 
 	formData := ArticleFormData{
 		Article:    article,
-		TagOptions: tagOptions,
+		TagOptions: tag_options,
 	}
 
 	ctx.HTML(http.StatusOK, "articles/form", formData)
@@ -209,12 +237,12 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 		new_article.Tags = append(new_article.Tags, tag)
 	}
 
-	article_id, err := c.store.Create(&new_article)
+	err := c.store.Update(&new_article)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"id": article_id})
+	ctx.Status(http.StatusOK)
 }

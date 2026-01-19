@@ -55,6 +55,14 @@ function removeTag(tag_container) {
 
 /** @param {string} tag_name */
 function addTag(tag_name) {
+    const form = document.querySelector('[data-component="articles-form"]')
+    const fd = new FormData(form)
+
+    if (fd.getAll('tags_names').includes(tag_name)) {
+        document.querySelector('#tag_search').value = ""
+        return;
+    }
+
     const tag_option = getTagOptionByName(tag_name)
 
     /** @type {HTMLElement} */
@@ -62,10 +70,13 @@ function addTag(tag_name) {
     const new_tag_node = getFirstChildCopyFromTemplate(template)
 
     new_tag_node.querySelector('input[name="tags_names"]').value = tag_name
+    new_tag_node.querySelector('[data-component="tag-name-display"]').innerText = tag_name
 
     if (tag_option) {
         tag_option.disabled = true
         new_tag_node.querySelector('input[name="tags_ids"]').value = tag_option.dataset.tagid
+    } else {
+        new_tag_node.querySelector('input[name="tags_ids"]').value = ""
     }
 
     document

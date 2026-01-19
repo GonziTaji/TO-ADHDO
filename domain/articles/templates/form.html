@@ -40,7 +40,7 @@
 
         <datalist id="datalist-available-tags">
             {{ range .TagOptions }}
-            <option value="{{.Name}}" data-tagid="{{.Id}}"></option>
+            <option value="{{.Name}}" data-tagid="{{.Id}}" {{if .Disabled}}disabled{{end}}></option>
             {{ end }}
         </datalist>
 
@@ -63,8 +63,9 @@
 
 {{ define "selected-tag-template" }}
 <li>
-    <input type="text" name="tags_names" value={{.Name}} readonly />
-    <input type="hidden" name="tags_ids" value={{.Id}} readonly />
+    <input type="hidden" name="tags_names" value="{{.Name}}" />
+    <input type="hidden" name="tags_ids" value="{{.Id}}" />
+    <span data-component="tag-name-display">{{.Name}}</span>
     <button data-action="remove-tag" type="button"> &times; </button>
 </li>
 {{ end }}

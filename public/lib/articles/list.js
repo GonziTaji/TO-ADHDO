@@ -71,16 +71,41 @@ function editArticleHandler(article_id) {
 function deleteArticleHandler(article_id) {
     const dialog = getDeleteDialog()
 
-    dialog.setAttribute('data-articleid', article_id)
+    dialog.dataset.articleid = article_id
     dialog.showModal()
 }
 
 function cancelDeleteHandler() {
+    const dialog = getDeleteDialog()
+
+    delete dialog.dataset.articleid
+
     getDeleteDialog().close()
 }
 
-function confirmDeleteHandler() {
-    getDeleteDialog().close()
+async function confirmDeleteHandler() {
+    const dialog = getDeleteDialog()
+    const article_id = dialog.dataset.articleid;
+
+    const item = document.querySelector(
+        `[data-component="articles-list-item"]:has([data-articleid="${article_id}"])`
+    )
+
+    item.dataset.loading = true
+
+    const response = await fetch(`/articles/${article_id}`, { method: 'DELETE' })
+
+    item.dataset.loading = false
+    dialog.close()
+
+    if (!response.ok) {
+        alert("Uh oh!" + await response.text())
+        return
+    }
+
+    item.remove()
+
+    alert("Article deleted successfully")
 }
 
 /** @returns {HTMLDialogElement} */
