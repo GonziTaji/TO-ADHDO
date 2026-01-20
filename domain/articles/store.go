@@ -305,7 +305,6 @@ func (s *Store) Create(article *Article) (string, error) {
 
 func (s *Store) Update(article *Article) error {
 	log.Printf("updating article: %v\n", article)
-	var new_tags_names QueryArgs
 
 	tx, err := s.db.Begin()
 
@@ -331,7 +330,7 @@ func (s *Store) Update(article *Article) error {
 	var get_tags_query strings.Builder
 	var insert_tags_query strings.Builder
 
-	get_tags_query.WriteString("SELECT name FROM (")
+	get_tags_query.WriteString("SELECT id FROM (\n")
 
 	insert_tags_query.WriteString("INSERT INTO tags (name) VALUES")
 
@@ -339,6 +338,8 @@ func (s *Store) Update(article *Article) error {
 
 	var tag_ids_of_new_relationships []string
 	var tag_ids_of_dead_relationships []string
+
+	var new_tags_names QueryArgs
 
 	for _, tag := range article.Tags {
 		if tag.Id == "" {
@@ -351,48 +352,29 @@ func (s *Store) Update(article *Article) error {
 				insert_tags_query.WriteString(", (?)")
 			}
 		} else {
+			log.Printf("input_tag_id: \"%s\"\n", tag.Id)
 			input_tags_ids[tag.Id] = tag.Id
 
 			if len(input_tags_ids) == 1 {
-				get_tags_query.WriteString(" SELECT ? AS name\n")
+				get_tags_query.WriteString(" SELECT ? AS id\n")
 			} else {
 				get_tags_query.WriteString(" UNION ALL SELECT ?\n")
 			}
 		}
 	}
 
-	if len(new_tags_names) > 0 {
-		insert_tags_query.WriteString(" RETURNING id;")
-
-		log.Printf("insert_tags_query: %s\n", insert_tags_query.String())
-
-		rows, err := s.db.Query(insert_tags_query.String(), new_tags_names...)
-
-		if err != nil {
-			log.Printf("could not insert tags: %s\n", err.Error())
-			return err
-		}
-
-		for rows.Next() {
-			var id string
-
-			if err := rows.Scan(&id); err != nil {
-				log.Printf("error scanning row of inserted tag: %s\n", err.Error())
-				return err
-			}
-
-			tag_ids_of_new_relationships = append(tag_ids_of_new_relationships, id)
-		}
-
-		if err := rows.Close(); err != nil {
-			fmt.Printf("Error closing rows of inserted tags: %s", err.Error())
-			return err
-		}
-	}
+	log.Printf("input_tags_ids: %v\n", input_tags_ids)
 
 	if len(input_tags_ids) > 0 {
-		get_tags_query.WriteString(
-			") input WHERE id NOT IN (select tag_id FROM articles_tags WHERE article_id = ? and deleted_at IS NULL)",
+		// TODO: fix. This gets the tags that don't exist as a relationship and used as they are
+		get_tags_query.WriteString(`
+			) input
+			WHERE id NOT IN (
+				SELECT tag_id
+				FROM articles_tags
+				WHERE article_id = ?
+				AND deleted_at IS NULL
+			)`,
 		)
 
 		args := make(QueryArgs, len(input_tags_ids)+1)
@@ -411,13 +393,18 @@ func (s *Store) Update(article *Article) error {
 		}
 
 		existing_related_tags_ids := make(map[string]string)
+		log.Printf(">>>>>>> : %d\n", len(existing_related_tags_ids))
 
 		for rows.Next() {
 			var id string
 			rows.Scan(&id)
 
+			log.Printf("existing id found: \"%s\"\n", id)
 			existing_related_tags_ids[id] = id
 		}
+
+		log.Printf("existing_related_tags_ids: %v\n", existing_related_tags_ids)
+		log.Printf(">>>>>>> : %d\n", len(existing_related_tags_ids))
 
 		if err := rows.Close(); err != nil {
 			log.Printf("error closing rows of existing related tags: %s", err.Error())
@@ -426,16 +413,66 @@ func (s *Store) Update(article *Article) error {
 
 		for _, existing_tag_id := range input_tags_ids {
 			if existing_related_tags_ids[existing_tag_id] == "" {
+				log.Printf("adding tag id %s to tag_ids_of_new_relationships\n", existing_tag_id)
 				tag_ids_of_new_relationships = append(tag_ids_of_new_relationships, existing_tag_id)
 			}
 		}
 
 		for _, related_tag_id := range existing_related_tags_ids {
+			log.Printf("related tag id: %s \n", related_tag_id)
 			if input_tags_ids[related_tag_id] == "" {
+				log.Printf("adding tag id %s to tag_ids_of_dead_relationships\n", related_tag_id)
 				tag_ids_of_dead_relationships = append(tag_ids_of_dead_relationships, related_tag_id)
 			}
 		}
 	}
+
+	log.Printf("tag_ids_of_dead_relationships: %v\n", tag_ids_of_dead_relationships)
+	log.Printf("len(tag_ids_of_dead_relationships): %v\n", len(tag_ids_of_dead_relationships))
+
+	if len(tag_ids_of_dead_relationships) > 0 {
+		var query_sb strings.Builder
+		var delete_pivot_args QueryArgs
+
+		query_sb.WriteString("UPDATE articles_tags SET \n")
+		query_sb.WriteString("deleted_at = current_timestamp, updated_at = current_timestamp \n")
+		query_sb.WriteString("WHERE article_id = ? and tag_id in (")
+
+		delete_pivot_args = append(delete_pivot_args, article.Id)
+
+		for i, tag_id := range tag_ids_of_dead_relationships {
+			delete_pivot_args = append(delete_pivot_args, tag_id)
+
+			if i == 0 {
+				query_sb.WriteString(" ?")
+			} else {
+				query_sb.WriteString(", ?")
+			}
+		}
+
+		query_sb.WriteString(")")
+
+		log.Printf("query: \n%s\n", query_sb.String())
+
+		res, err = tx.Exec(query_sb.String(), delete_pivot_args...)
+
+		if err != nil {
+			tx.Rollback()
+			fmt.Printf("error deleting pivot table: %s\n", err.Error())
+			return err
+		}
+
+		count, _ := res.RowsAffected()
+
+		log.Printf("affected rows: %d, pivot_args: %d", count, len(delete_pivot_args))
+
+		if int(count) != len(delete_pivot_args)/2 {
+			tx.Rollback()
+			return errors.New("One or more rows could not be deleted")
+		}
+	}
+
+	log.Printf("tag_ids_of_new_relationships: %v\n", tag_ids_of_new_relationships)
 
 	if len(tag_ids_of_new_relationships) > 0 {
 		var query_sb strings.Builder
@@ -473,45 +510,34 @@ func (s *Store) Update(article *Article) error {
 		}
 	}
 
-	if len(tag_ids_of_dead_relationships) > 0 {
-		var query_sb strings.Builder
-		var delete_pivot_args QueryArgs
+	log.Printf("new_tags_names: %v\n", new_tags_names)
 
-		query_sb.WriteString("UPDATE articles_tags SET\n")
-		query_sb.WriteString("deleted_at = current_timestamp, updated_at = current_timestamp\n")
-		query_sb.WriteString("WHERE aticle_id = ? and tag_id in (")
+	if len(new_tags_names) > 0 {
+		insert_tags_query.WriteString(" RETURNING id;")
 
-		delete_pivot_args = append(delete_pivot_args, article.Id)
+		log.Printf("insert_tags_query: %s\n", insert_tags_query.String())
 
-		for i, tag_id := range tag_ids_of_dead_relationships {
-			delete_pivot_args = append(delete_pivot_args, tag_id)
-
-			if i == 0 {
-				query_sb.WriteString(" ?")
-			} else if i < len(tag_ids_of_dead_relationships)-1 {
-				query_sb.WriteString(", ?")
-			} else {
-				query_sb.WriteString(", ?)")
-			}
-		}
-
-		log.Printf("query: \n%s\n", query_sb.String())
-
-		res, err = tx.Exec(query_sb.String(), delete_pivot_args...)
+		rows, err := s.db.Query(insert_tags_query.String(), new_tags_names...)
 
 		if err != nil {
-			tx.Rollback()
-			fmt.Printf("error deleting pivot table: %s\n", err.Error())
+			log.Printf("could not insert tags: %s\n", err.Error())
 			return err
 		}
 
-		count, _ := res.RowsAffected()
+		for rows.Next() {
+			var id string
 
-		log.Printf("affected rows: %d, pivot_args: %d", count, len(delete_pivot_args))
+			if err := rows.Scan(&id); err != nil {
+				log.Printf("error scanning row of inserted tag: %s\n", err.Error())
+				return err
+			}
 
-		if int(count) != len(delete_pivot_args)/2 {
-			tx.Rollback()
-			return errors.New("One or more rows could not be deleted")
+			tag_ids_of_new_relationships = append(tag_ids_of_new_relationships, id)
+		}
+
+		if err := rows.Close(); err != nil {
+			fmt.Printf("Error closing rows of inserted tags: %s", err.Error())
+			return err
 		}
 	}
 

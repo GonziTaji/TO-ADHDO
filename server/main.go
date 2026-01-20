@@ -101,7 +101,7 @@ func getTemplatePaths() []string {
 }
 
 func newDB() (*sql.DB, error) {
-	data_souce_name, _ := env.LookupEnvWithDefault("DB_NAME", "main.db")
+	data_souce_name, _ := env.LookupEnvWithDefault("DB_NAME", "database/main.db")
 
 	var err error
 	db, err := sql.Open("sqlite", data_souce_name)
