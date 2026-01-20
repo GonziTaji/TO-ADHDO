@@ -2,6 +2,7 @@ package tags
 
 import (
 	"database/sql"
+	"log"
 	"strings"
 )
 
@@ -25,11 +26,15 @@ func (s *Store) List(options ListingTagsOptions) ([]Tag, error) {
 		FROM tags
 	`)
 
+	log.Printf("\n\ninclude deleted: %v\n\n", options.IncludeDeleted)
+
 	if !options.IncludeDeleted {
 		sb_query.WriteString(" WHERE deleted_at IS NULL ")
 	}
 
 	sb_query.WriteString(" LIMIT ? OFFSET ? ;")
+
+	log.Printf("query: %s", sb_query.String())
 
 	rows, err := s.db.Query(sb_query.String(), options.Limit, options.Offset)
 

@@ -109,7 +109,7 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 	tags, err := c.tagsStore.List(tags.ListingTagsOptions{})
 	tag_options := make([]TagOption, len(tags))
 
-	tags_ids_in_article := make(map[string]bool, len(tags))
+	tags_ids_in_article := make(map[string]bool)
 
 	for _, tag := range article.Tags {
 		log.Printf("adding tag id %s to map\n", tag.Id)
