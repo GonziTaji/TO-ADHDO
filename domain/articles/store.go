@@ -91,6 +91,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 		FROM articles_tags as pivot
 		JOIN tags on tags.id = pivot.tag_id
 		WHERE pivot.article_id IN (%s)
+		AND pivot.deleted_at IS NULL;
 	`, strings.Join(query_placeholders, ","))
 
 	rows, err = s.db.Query(query, articles_ids...)
