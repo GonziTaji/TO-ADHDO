@@ -10,10 +10,14 @@
 
 <body>
     <div id="tags_list">
+        <h1>Tags list</h1>
+
+        <input type="text" name="search" id="search_input" placeholder="Search" />
+
         <ul>
             {{ range . }}
             <li data-record-id="{{.Id}}">
-                <span>[ in {{.Usage}} articles ]</span>
+                <span>[ in {{.Usage}} articles <a href="/articles?tagid={{.Id}}" target="_parent">view</a>]</span>
 
                 <span>{{.Name}}</span>
 
@@ -23,18 +27,70 @@
         </ul>
     </div>
 
-    <style>
+    <style id="base_styles">
+        body {
+            margin: 0;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        ul {
+            margin: 0;
+            padding: 0;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        button {
+            cursor: pointer;
+        }
+    </style>
+
+    <style id="tags_list_styles">
         #tags_list {
-            border: 1px solid red;
+            margin: 40px auto 0 auto;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
 
             ul {
-                display: flex;
-                flex-direction: column;
+                border: 2px solid #cccccc66;
+                border-radius: 4px;
+
+                margin: 0;
+                padding: 0;
+                display: grid;
+                grid-template-columns: auto 1fr auto;
 
                 li {
+                    padding: 8px 16px;
+
                     display: grid;
-                    grid-template-columns: auto;
-                    justify-content: space-between;
+                    grid-column: 1/4;
+                    grid-template-columns: subgrid;
+                    justify-content: start;
+                    column-gap: 8px;
+
+                    &:nth-child(2n) {
+                        background-color: #eee;
+                    }
+
+                    &:hover {
+                        background-color: #ddd;
+                    }
+
+                    button {
+                        cursor: pointer;
+                    }
+
+                    a {
+                        text-decoration: none;
+                    }
                 }
             }
         }
@@ -48,15 +104,13 @@
         }
 
         function delegateClick(ev) {
-            console.log("click")
             const btn = ev.target.closest('[data-action]')
-            console.log(btn)
+
             if (!btn) {
                 return
             }
 
             const {action, tagid} = btn.dataset
-            console.log(action)
 
             switch (action) {
                 case 'delete-tag':
