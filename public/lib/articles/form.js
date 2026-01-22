@@ -70,7 +70,6 @@ function addTag(tag_name) {
     const new_tag_node = getFirstChildCopyFromTemplate(template)
 
     new_tag_node.querySelector('input[name="tags_names"]').value = tag_name
-    new_tag_node.querySelector('[data-component="tag-name-display"]').innerText = tag_name
 
     if (tag_option) {
         tag_option.disabled = true

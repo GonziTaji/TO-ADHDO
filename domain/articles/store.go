@@ -345,15 +345,17 @@ func (s *Store) Update(article *Article) error {
 	}
 
 	// TODO: FIX - Receiving names, not ids
-	log.Printf("tags created, new ids: %s\n", new_tags_names)
+	log.Printf("tags created, new ids: %s\n", new_tags_ids)
 
 	if len(new_tags_ids) > 0 {
 		query := fmt.Sprintf(`
 			INSERT into articles_tags (article_id, tag_id)
 			VALUES %s (?, ?);
 		`,
-			strings.Repeat(", (?, ?)", len(new_tags_ids)-1),
+			strings.Repeat("(?, ?), ", len(new_tags_ids)-1),
 		)
+
+		log.Printf("executing query: %s\n", query)
 
 		var queryargs QueryArgs
 
@@ -361,15 +363,27 @@ func (s *Store) Update(article *Article) error {
 			queryargs = append(queryargs, article.Id, id)
 		}
 
-		tx.Exec(query, queryargs...)
+		res, err := tx.Exec(query, queryargs...)
+
+		if err != nil {
+			log.Printf("could not insert articles_tags of new tags: %s\n", err)
+			return err
+		}
+
+		if count, _ := res.RowsAffected(); int(count) != len(new_tags_ids) {
+			err := errors.New("Expected number of affected rows don't match number of values")
+			log.Printf("could not insert articles_tags of new tags: %s\n", err)
+			return err
+		}
+
 	}
 
 	tags_ids_in_relationships_query := `
-			SELECT tag_id
-			FROM articles_tags
-			WHERE article_id = ?
-			AND deleted_at IS NULL
-		`
+		SELECT tag_id
+		FROM articles_tags
+		WHERE article_id = ?
+		AND deleted_at IS NULL
+	`
 
 	rows, err := tx.Query(tags_ids_in_relationships_query, article.Id)
 
@@ -400,7 +414,6 @@ func (s *Store) Update(article *Article) error {
 	for id := range tags_ids_in_relationships {
 		log.Printf("	> id: %s", id)
 	}
-	log.Println("")
 
 	for _, tag_id := range input_tags_ids {
 		log.Printf("tags_ids_in_relationships[tag_id_in_input]: %s\n", tags_ids_in_relationships[tag_id])
@@ -419,7 +432,7 @@ func (s *Store) Update(article *Article) error {
 
 	for _, tag_id := range tags_ids_in_relationships {
 		log.Printf("input_tags_ids[tag_id_in_relationship]: %s\n", tags_ids_in_relationships[tag_id])
-		if input_tags_ids[tag_id] == "" {
+		if input_tags_ids[tag_id] == "" && !slices.Contains(new_tags_ids, tag_id) {
 			_, err := tx.Exec(`
 					UPDATE articles_tags
 					SET
@@ -433,7 +446,7 @@ func (s *Store) Update(article *Article) error {
 			)
 
 			if err != nil {
-				log.Printf("could not insert articles_tags for tag id: %s\n", tag_id)
+				log.Printf("could not soft delete articles_tags for tag id: %s\n", tag_id)
 				return err
 			}
 		}
@@ -472,7 +485,6 @@ func (s *Store) Delete(article_id string) error {
 	}
 
 	for _, table := range relationships_tables {
-		log.Printf("soft-deleting article's %s\n", table)
 		_, err = tx.Exec(`
 			UPDATE articles_tags
 			SET deleted_at = current_timestamp 
@@ -527,8 +539,6 @@ func createTags(tx *sql.Tx, tags_names []string) ([]string, error) {
 
 	var tags_ids []string
 
-	log.Printf("executing query: \n\n%s\n", insert_tags_query.String())
-
 	rows, err := tx.Query(insert_tags_query.String(), new_tags_names...)
 
 	if err != nil {
@@ -575,8 +585,6 @@ func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
 		}
 	}
 
-	log.Printf("query: \n%s\n", query_sb.String())
-
 	res, err := tx.Exec(query_sb.String(), query_args...)
 
 	if err != nil {
@@ -585,8 +593,6 @@ func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
 	}
 
 	count, _ := res.RowsAffected()
-
-	log.Printf("count: %d, pivot_args: %d", count, len(query_args))
 
 	if int(count) != len(query_args)/2 {
 		return errors.New("One or more rows could not be inserted")

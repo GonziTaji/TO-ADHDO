@@ -2,16 +2,63 @@
 
 ## Description
 
-This application is just a todo list with some features to organize and plan tasks
+This app pivoted from a glorified todo-list into a glorified shop or something lol.
 
-- Tasks are just an action name, description (optional) and with any number of tags
-- Tags are used to identify types or categories of tasks, like "spring cleaning", "travel preparations", etc
-- Lists of tasks (to-do lists) can be created with any number of tasks as a template to be started at any time
-- When a list of task is started, the "template" form of the task is untouched, and the user can add or remove tasks on the "live" list
-- Events are basically
+The goal of this project is to practice golang and reinforce web technologies knowledge.
+
+## Objectives
+
+- Reinforce knowledge of native web technologies
+- Become more familiar with "new" (modern) features of web apis, css, js, etc.
+- Delve deeper into golang's standart library
+- Discover common patterns for a golang web server, and for webservers in general
+
+## Expected result
+
+A scalable and maintanable proof of concept of a competent webapp without frontend frameworks
+
+## Restrictions
+
+To avoid losing direction of this project's goals, some dev restrictions are defined:
+
+### DO
+
+- Compose the web pages using html/templates' block and template features
+
+### DON'T
+
+- Install golang packages besides go-gin unless strictly necessary
+- Install/import javascript libraries unless strictly necessary
+
+### AVOID
+
+- manipulating the DOM with js scripts
+
+### ONLY
+
+- ONLY use the standart library and go-gin for the server (exceptions may exist)
+- ONLY USE hypermedia as the frontend's state (htmx's philosophy)
+- ONLY send html (or text for info) from the server to the client, unless strictly necessary
+
+
+Examples (frontend):
+
+Instead of updating DOM elements with js:
+- Request the component/section/slice of html and replace the stale elements
+
+Instead of creating or duplicating html nodes with js:
+- Use native html template elements
+
+Instead of using complex css selectors
+- Use modern css features like nested selectors, and pseudoclasses like :has
+
+Examples (backend):
+
+idk, that's why I'm doing this lol
 
 ## Tech Stack
 
-- The interface is a web site written in plain html/css/js
-- The backend is a go server with a rest api and routes for the web pages
-- The data is saved in an SQLite instance living where the server lives
+- The web pages are a composition of html/template blocks written in plain html/css/js
+- The backend is a go server written with go-gin
+- The data is saved in an SQLite instance living where the server lives (for now I guess)
+

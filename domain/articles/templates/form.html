@@ -1,71 +1,68 @@
 {{ define "articles/form" }}
 <!doctype>
 <html>
+    <head>
+        <title>New article</title>
+        <script type="module" src="/public/lib/articles/form.js"></script>
 
-<head>
-    <title>New article</title>
-    <script type="module" src="/public/lib/articles/form.js"></script>
+        {{ template "meta_tags" }}
+    </head>
 
-    {{ template "meta_tags" }}
-</head>
+    <body>
+        <form data-component="articles-form">
+            <input type="hidden" name="id" value="{{.Article.Id}}" />
 
-<body>
-    <form data-component="articles-form">
-        <input type="hidden" name="id" value="{{.Article.Id}}" />
+            <div>
+                <label for="name">Name: </label>
+                <input type="text" id="name" name="name" value="{{.Article.Name}}" placeholder="name" required />
+            </div>
 
-        <div>
-            <label for="name">Name: </label>
-            <input type="text" id="name" name="name" value="{{.Article.Name}}" placeholder="name" required />
-        </div>
+            <div>
+                <label for="desription">Description: </label>
+                <textarea type="text" cols="3" id="description" name="description"
+                                                                placeholder="description">{{.Article.Description}}</textarea>
+            </div>
 
-        <div>
-            <label for="desription">Description: </label>
-            <textarea type="text" cols="3" id="description" name="description"
-                placeholder="description">{{.Article.Description}}</textarea>
-        </div>
+            <div>
+                <label for="tag_search">Tags:</label>
 
-        <div>
-            <label for="tag_search">Tags:</label>
+                <ul data-component="selected-tags-list">
+                    {{ range .Article.Tags }}
+                    {{ template "selected-tag-template" . }}
+                    {{ end }}
+                </ul>
 
-            <ul data-component="selected-tags-list">
-                {{ range .Article.Tags }}
-                {{ template "selected-tag-template" . }}
+                <input name="tag_search" id="tag_search" type="text" list="datalist-available-tags" />
+
+                <ul data-component="suggested-tags-list"></ul>
+            </div>
+
+            <datalist id="datalist-available-tags">
+                {{ range .TagOptions }}
+                <option value="{{.Name}}" data-tagid="{{.Id}}" {{if .Disabled}}disabled{{end}}></option>
                 {{ end }}
-            </ul>
+            </datalist>
 
-            <input name="tag_search" id="tag_search" type="text" list="datalist-available-tags" />
+            <button type="submit">Save article</button>
+        </form>
 
-            <ul data-component="suggested-tags-list"></ul>
-        </div>
+        <template data-component="selected-tag-template">
+            {{ template "selected-tag-template" }}
+        </template>
 
-        <datalist id="datalist-available-tags">
-            {{ range .TagOptions }}
-            <option value="{{.Name}}" data-tagid="{{.Id}}" {{if .Disabled}}disabled{{end}}></option>
-            {{ end }}
-        </datalist>
-
-        <button type="submit">Save article</button>
-    </form>
-
-    <template data-component="selected-tag-template">
-        {{ template "selected-tag-template" }}
-    </template>
-
-    <template data-component="suggested-tag-template">
-        <li>
-            <button data-action="add-tag" data-tagid="" type="button"></button>
-        </li>
-    </template>
-</body>
-
+        <template data-component="suggested-tag-template">
+            <li>
+                <button data-action="add-tag" data-tagid="" type="button"></button>
+            </li>
+        </template>
+    </body>
 </html>
 {{ end }}
 
 {{ define "selected-tag-template" }}
 <li>
-    <input type="hidden" name="tags_names" value="{{.Name}}" />
+    <input type="text" name="tags_names" value="{{.Name}}" readonly />
     <input type="hidden" name="tags_ids" value="{{.Id}}" />
-    <span data-component="tag-name-display">{{.Name}}</span>
     <button data-action="remove-tag" type="button"> &times; </button>
 </li>
 {{ end }}
