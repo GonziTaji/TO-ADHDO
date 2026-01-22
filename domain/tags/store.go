@@ -14,7 +14,7 @@ func CreateStore(db *sql.DB) *Store {
 	return &Store{db}
 }
 
-func (s *Store) List(options ListingTagsOptions) ([]Tag, error) {
+func (s *Store) List(options ListingTagsOptions) ([]TagItemList, error) {
 	if options.Limit == 0 {
 		options.Limit = 100
 	}
@@ -22,45 +22,91 @@ func (s *Store) List(options ListingTagsOptions) ([]Tag, error) {
 	var sb_query strings.Builder
 
 	sb_query.WriteString(`
-		SELECT id, name, created_at, updated_at, deleted_at
-		FROM tags
+		SELECT t.id, t.name, t.created_at, t.updated_at, t.deleted_at, COUNT(at.article_id) as usage
+		FROM tags t
+		JOIN articles_tags at
+			ON t.id = at.tag_id
+			AND at.deleted_at IS NULL
 	`)
 
-	log.Printf("\n\ninclude deleted: %v\n\n", options.IncludeDeleted)
-
 	if !options.IncludeDeleted {
-		sb_query.WriteString(" WHERE deleted_at IS NULL ")
+		sb_query.WriteString(
+			" WHERE t.deleted_at IS NULL ",
+		)
 	}
 
-	sb_query.WriteString(" LIMIT ? OFFSET ? ;")
+	sb_query.WriteString(`
+		GROUP BY t.id, t.name, t.created_at, t.updated_at, t.deleted_at
+		ORDER BY t.updated_at DESC
+		LIMIT 100 OFFSET 0;
+	`)
 
 	log.Printf("query: %s", sb_query.String())
 
 	rows, err := s.db.Query(sb_query.String(), options.Limit, options.Offset)
 
 	if err != nil {
-		// TODO: handle error
+		log.Printf("could not get task list: %s\n", err.Error())
 		return nil, err
 	}
 
-	var tags []Tag
+	var list []TagItemList
 	for rows.Next() {
-		var tag Tag
+		var tag_data TagItemList
 
-		rows.Scan(
-			&tag.Id,
-			&tag.Name,
-			&tag.CreatedAt,
-			&tag.UpdatedAt,
-			&tag.DeletedAt,
-		)
+		if err := rows.Scan(
+			&tag_data.Id,
+			&tag_data.Name,
+			&tag_data.CreatedAt,
+			&tag_data.UpdatedAt,
+			&tag_data.DeletedAt,
+			&tag_data.Usage,
+		); err != nil {
+			log.Printf("could not scan task row: %s\n", err.Error())
+			return nil, err
+		}
 
-		tags = append(tags, tag)
+		log.Printf("list item > %v\n", tag_data)
+
+		list = append(list, tag_data)
 	}
 
 	if err := rows.Close(); err != nil {
-		return tags, err
+		return nil, err
 	}
 
-	return tags, nil
+	return list, nil
 }
+
+var s = `
+	SELECT t.id, t.name, t.created_at, t.updated_at, t.deleted_at, COUNT(at.article_id)
+	FROM tags t
+	JOIN articles_tags at
+		ON t.id = at.tag_id
+		AND at.deleted_at IS NULL
+	WHERE t.deleted_at IS NULL
+	GROUP BY t.id, t.name, t.created_at, t.updated_at, t.deleted_at
+	ORDER BY t.updated_at DESC
+	LIMIT 100 OFFSET 0;
+`
+
+var s3 = `
+	SELECT t.id, t.name, t.created_at, t.updated_at, t.deleted_at, at.article_id
+	FROM tags t
+	JOIN articles_tags at
+		ON t.id = at.tag_id
+		AND at.deleted_at IS NULL
+	WHERE t.deleted_at IS NULL
+	-- GROUP BY t.id, t.name, t.created_at, t.updated_at, t.deleted_at
+	ORDER BY t.updated_at DESC
+	LIMIT 100 OFFSET 0;
+`
+
+var s2 = `
+	SELECT t.id, t.name, t.created_at, t.updated_at, t.deleted_at, COUNT(at.article_id)
+	FROM tags t
+	JOIN articles_tags at
+		ON t.id = at.tag_id
+		AND at.deleted_at IS NULL
+	WHERE t.deleted_at IS NULL;
+`

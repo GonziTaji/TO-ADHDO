@@ -12,10 +12,59 @@
     <div id="tags_list">
         <ul>
             {{ range . }}
-            <li data-record-id="{{.Id}}">{{.Name}}</li>
+            <li data-record-id="{{.Id}}">
+                <span>[ in {{.Usage}} articles ]</span>
+
+                <span>{{.Name}}</span>
+
+                <button type="button" data-action="delete-tag" data-tagid="{{.Id}}">&times;</button>
+            </li>
             {{ end }}
         </ul>
     </div>
+
+    <style>
+        #tags_list {
+            border: 1px solid red;
+
+            ul {
+                display: flex;
+                flex-direction: column;
+
+                li {
+                    display: grid;
+                    grid-template-columns: auto;
+                    justify-content: space-between;
+                }
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", mount)
+
+        function mount() {
+            document.addEventListener("click", delegateClick)
+        }
+
+        function delegateClick(ev) {
+            console.log("click")
+            const btn = ev.target.closest('[data-action]')
+            console.log(btn)
+            if (!btn) {
+                return
+            }
+
+            const {action, tagid} = btn.dataset
+            console.log(action)
+
+            switch (action) {
+                case 'delete-tag':
+                    alert(`delete tag clicked for tag ${tagid}!!`)
+                    break;
+            }
+        }
+    </script>
 </body>
 
 </html>
