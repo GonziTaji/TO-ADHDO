@@ -1,61 +1,84 @@
 {{ define "articles/form" }}
 <!doctype>
 <html>
-    <head>
-        <title>New article</title>
-        <script type="module" src="/public/lib/articles/form.js"></script>
 
-        {{ template "meta_tags" }}
-    </head>
+<head>
+    <title>New article</title>
+    <script type="module" src="/public/lib/articles/form.js"></script>
 
-    <body>
-        <form data-component="articles-form">
-            <input type="hidden" name="id" value="{{.Article.Id}}" />
+    {{ template "meta_tags" }}
+</head>
 
-            <div>
+<body>
+    <form id="articles-form">
+        <input type="hidden" name="id" value="{{.Article.Id}}" />
+
+        <fieldset id="base-info">
+            <legend>Base info</legend>
+
+            <div class="form-control">
                 <label for="name">Name: </label>
                 <input type="text" id="name" name="name" value="{{.Article.Name}}" placeholder="name" required />
             </div>
 
-            <div>
+            <div class="form-control">
                 <label for="desription">Description: </label>
-                <textarea type="text" cols="3" id="description" name="description"
-                                                                placeholder="description">{{.Article.Description}}</textarea>
+                <textarea type="text" rows="3" id="description" name="description"
+                    placeholder="description">{{.Article.Description}}</textarea>
             </div>
+        </fieldset>
 
-            <div>
-                <label for="tag_search">Tags:</label>
+        <fieldset id="tags-section">
+            <legend>Tags</legend>
 
-                <ul data-component="selected-tags-list">
-                    {{ range .Article.Tags }}
-                    {{ template "selected-tag-template" . }}
-                    {{ end }}
-                </ul>
+            <input name="tag_search" id="tag_search" type="text" list="datalist-available-tags"
+                placeholder="Search or create tag" />
 
-                <input name="tag_search" id="tag_search" type="text" list="datalist-available-tags" />
+            <ul data-component="suggested-tags-list"></ul>
 
-                <ul data-component="suggested-tags-list"></ul>
-            </div>
-
-            <datalist id="datalist-available-tags">
-                {{ range .TagOptions }}
-                <option value="{{.Name}}" data-tagid="{{.Id}}" {{if .Disabled}}disabled{{end}}></option>
+            <ul data-component="selected-tags-list">
+                {{ range .Article.Tags }}
+                {{ template "selected-tag-template" . }}
                 {{ end }}
-            </datalist>
+            </ul>
+        </fieldset>
 
-            <button type="submit">Save article</button>
-        </form>
+        <datalist id="datalist-available-tags">
+            {{ range .TagOptions }}
+            <option value="{{.Name}}" data-tagid="{{.Id}}" {{if .Disabled}}disabled{{end}}></option>
+            {{ end }}
+        </datalist>
 
-        <template data-component="selected-tag-template">
-            {{ template "selected-tag-template" }}
-        </template>
+        <button type="submit">Save article</button>
+    </form>
 
-        <template data-component="suggested-tag-template">
-            <li>
-                <button data-action="add-tag" data-tagid="" type="button"></button>
-            </li>
-        </template>
-    </body>
+    <template id="selected-tag-template">
+        {{ template "selected-tag-template" }}
+    </template>
+
+    <template id="suggested-tag-template">
+        <li>
+            <button data-action="add-tag" data-tagid="" type="button"></button>
+        </li>
+    </template>
+
+    <style>
+        #articles-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+
+            #base-info {
+                .form-control {
+                    display: grid;
+                    grid-template-columns: subgrid;
+                    grid-column: 1/4;
+                }
+            }
+        }
+    </style>
+</body>
+
 </html>
 {{ end }}
 

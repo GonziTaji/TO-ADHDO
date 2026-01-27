@@ -5,9 +5,19 @@ function init() {
 }
 
 function bindEvents() {
-    document
-        .querySelector('[data-component="delete-dialog"]')
-        .addEventListener("close", closeDeleteDialogHandler)
+    document.addEventListener('beforetoggle', (/** @type {ToggleEvent} */ ev) => {
+        /** @type {HTMLDialogElement | null} */
+        const dialog = ev.target.closest('dialog')
+
+        if (!dialog) {
+            return;
+        }
+
+        dialog.dataset.state = newState
+    })
+
+    const delete_dialog = getDeleteDialog()
+    delete_dialog.addEventListener("close", closeDeleteDialogHandler)
 
     document.addEventListener('click', (ev) => {
         /** @type {HTMLButtonElement | null} */
@@ -103,6 +113,8 @@ async function confirmDeleteHandler() {
         return
     }
 
+    // Should we ask the backend for the full list to ensure the list is updated with the data?
+    // It would guard against false positive creations responses
     item.remove()
 
     alert("Article deleted successfully")
@@ -110,7 +122,7 @@ async function confirmDeleteHandler() {
 
 /** @returns {HTMLDialogElement} */
 function getDeleteDialog() {
-    return document.querySelector('[data-component="delete-dialog"]')
+    return document.querySelector('#article-list-delete-article-dialog')
 
 }
 

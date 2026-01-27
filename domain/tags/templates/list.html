@@ -6,6 +6,7 @@
 <head>
     <title>Tags</title>
     {{ template "meta_tags" }}
+    {{ template "base_styles" }}
 </head>
 
 <body>
@@ -26,29 +27,6 @@
             {{ end }}
         </ul>
     </div>
-
-    <style id="base_styles">
-        body {
-            margin: 0;
-        }
-
-        h1 {
-            margin: 0;
-        }
-
-        ul {
-            margin: 0;
-            padding: 0;
-        }
-
-        a {
-            text-decoration: none;
-        }
-
-        button {
-            cursor: pointer;
-        }
-    </style>
 
     <style id="tags_list_styles">
         #tags_list {

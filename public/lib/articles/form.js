@@ -7,7 +7,7 @@ function init() {
 }
 
 function bindEvents() {
-    const form = document.querySelector('[data-component="articles-form"]')
+    const form = document.getElementById('articles-form')
     form.addEventListener("submit", formSubmitHandler)
 
     {
@@ -35,7 +35,7 @@ function bindEvents() {
     })
 
     document
-        .querySelector('[data-component="articles-form"]')
+        .getElementById('articles-form')
         .addEventListener("submit", formSubmitHandler)
 }
 
@@ -55,7 +55,7 @@ function removeTag(tag_container) {
 
 /** @param {string} tag_name */
 function addTag(tag_name) {
-    const form = document.querySelector('[data-component="articles-form"]')
+    const form = document.getElementById('articles-form')
     const fd = new FormData(form)
 
     if (fd.getAll('tags_names').includes(tag_name)) {
@@ -112,33 +112,33 @@ async function formSubmitHandler(ev) {
     console.log(await response.text())
 }
 
-/** @param {string} search_term */
-function tagSearchChangeHandler(search_term) {
-    const suggested_tags_list = document.querySelector(
-        '[data-component="suggested-tags-list"]'
+/** @param {KeyboardEvent} ev */
+function tagSearchChangeHandler(ev) {
+    const search_term = ev.currentTarget.value
+
+    const suggested_tags_list = document.getElementById(
+        'suggested-tags-list'
     )
 
     suggested_tags_list.innerHTML = "";
 
-    /** @type {HTMLOptionElement */
-    const tags_options = [...document.querySelectorAll(
-        'datalist#datalist-available-tags option'
-    )]
+    /** @type {NodeListOf<HTMLOptionElement>} */
+    const tags_options = document.querySelectorAll(
+        '#datalist-available-tags option'
+    )
 
     if (!search_term) {
         return
     }
 
     /** @type {{name: string, id: string}[]} */
-    const filtered_tags = tags_options
+    const filtered_tags = [...tags_options]
         .filter((option) => !option.disabled)
         .filter((option) => option.value.includes(search_term))
-        .map((option) => ({ name: option.innerText, id: option.value }))
+        .map((option) => ({ name: option.value, id: option.dataset.tagid }))
 
     /** @type {HTMLTemplateElement} */
-    const template = document.querySelector(
-        'template[data-component="suggested-tag-template"]'
-    )
+    const template = document.getElementById('suggested-tag-template')
 
     for (const tag of filtered_tags) {
         const suggested_tag_node = getFirstChildCopyFromTemplate(template)
@@ -146,7 +146,7 @@ function tagSearchChangeHandler(search_term) {
         /** @type {HTMLButtonElement} */
         const add_button = suggested_tag_node.querySelector('button[data-action="add-tag"]')
         add_button.setAttribute('data-tagid', tag.id)
-        add_button.innerText = tag.name
+        add_button.textContent = tag.name
 
         suggested_tags_list.appendChild(suggested_tag_node);
     }

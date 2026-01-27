@@ -48,15 +48,6 @@ func setupSecurityHeaders(c *gin.Context) {
 	c.Next()
 }
 
-func registerStaticRoutes(router *gin.Engine) {
-	static_path := "public/"
-
-	router.Use(blockExtensions(".html"))
-
-	router.StaticFile("/favicon.ico", static_path+"favicon.ico")
-	router.Static("/public", static_path)
-}
-
 func newRouter(db *sql.DB) *gin.Engine {
 	router := gin.Default()
 
