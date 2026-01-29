@@ -9,10 +9,9 @@ function init() {
 function bindEvents() {
     const form = document.getElementById('articles-form')
     form.addEventListener("submit", formSubmitHandler)
-
+    form.addEventListener("reset", formResetHandler)
     {
         const tag_search_input = form.querySelector('input[name="tag_search"]')
-        tag_search_input.addEventListener("input", tagSearchChangeHandler)
         tag_search_input.addEventListener("keydown", tagSearchKeyDownHandler)
     }
 
@@ -33,10 +32,6 @@ function bindEvents() {
                 break
         }
     })
-
-    document
-        .getElementById('articles-form')
-        .addEventListener("submit", formSubmitHandler)
 }
 
 /**
@@ -66,7 +61,7 @@ function addTag(tag_name) {
     const tag_option = getTagOptionByName(tag_name)
 
     /** @type {HTMLElement} */
-    const template = document.querySelector('template[data-component="selected-tag-template"]')
+    const template = document.getElementById('selected-tag-template')
     const new_tag_node = getFirstChildCopyFromTemplate(template)
 
     new_tag_node.querySelector('input[name="tags_names"]').value = tag_name
@@ -83,6 +78,10 @@ function addTag(tag_name) {
         .appendChild(new_tag_node)
 
     document.querySelector('#tag_search').value = ""
+}
+
+function formResetHandler() {
+
 }
 
 /** @param {SubmitEvent} ev */
@@ -110,46 +109,6 @@ async function formSubmitHandler(ev) {
     }
 
     console.log(await response.text())
-}
-
-/** @param {KeyboardEvent} ev */
-function tagSearchChangeHandler(ev) {
-    const search_term = ev.currentTarget.value
-
-    const suggested_tags_list = document.getElementById(
-        'suggested-tags-list'
-    )
-
-    suggested_tags_list.innerHTML = "";
-
-    /** @type {NodeListOf<HTMLOptionElement>} */
-    const tags_options = document.querySelectorAll(
-        '#datalist-available-tags option'
-    )
-
-    if (!search_term) {
-        return
-    }
-
-    /** @type {{name: string, id: string}[]} */
-    const filtered_tags = [...tags_options]
-        .filter((option) => !option.disabled)
-        .filter((option) => option.value.includes(search_term))
-        .map((option) => ({ name: option.value, id: option.dataset.tagid }))
-
-    /** @type {HTMLTemplateElement} */
-    const template = document.getElementById('suggested-tag-template')
-
-    for (const tag of filtered_tags) {
-        const suggested_tag_node = getFirstChildCopyFromTemplate(template)
-
-        /** @type {HTMLButtonElement} */
-        const add_button = suggested_tag_node.querySelector('button[data-action="add-tag"]')
-        add_button.setAttribute('data-tagid', tag.id)
-        add_button.textContent = tag.name
-
-        suggested_tags_list.appendChild(suggested_tag_node);
-    }
 }
 
 /** @param {KeyboardEvent} ev */
