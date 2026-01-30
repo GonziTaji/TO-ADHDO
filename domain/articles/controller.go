@@ -17,6 +17,7 @@ type TagOption struct {
 type ArticleFormData struct {
 	Article    Article
 	TagOptions []TagOption
+	Prices     []ArticlePrice
 }
 
 type RenderArticleViewOptions struct {

@@ -7,10 +7,33 @@ function init() {
 }
 
 function bindEvents() {
-    const form = document.getElementById('articles-form')
-    form.addEventListener("submit", formSubmitHandler)
-    form.addEventListener("reset", formResetHandler)
+    document.addEventListener('submit', (e) => {
+        console.log("submit event", e)
+        console.log("formaction", e.submitter)
+
+        e.preventDefault()
+
+        const form = e.target.closest('form')
+
+        if (!form) return
+    })
+
+    document.addEventListener('reset', (e) => {
+        console.log("reset event", e)
+        console.log("formaction", e.submitter)
+
+        e.preventDefault()
+
+        const form = e.target.closest('form')
+
+        if (!form) return
+    })
+
+
     {
+        const form = document.getElementById('articles-form')
+        // form.addEventListener("submit", formSubmitHandler)
+        // form.addEventListener("reset", formResetHandler)
         const tag_search_input = form.querySelector('input[name="tag_search"]')
         tag_search_input.addEventListener("keydown", tagSearchKeyDownHandler)
     }

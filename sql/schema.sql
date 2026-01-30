@@ -18,6 +18,13 @@ CREATE TABLE if not exists articles_images (
     deleted_at TEXT DEFAULT NULL
 );
 
+CREATE TABLE if not exists articles_prices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id INTEGER NOT NULL,
+    description TEXT DEFAULT NULL,
+    created_at TEXT DEFAULT current_timestamp NOT NULL
+);
+
 CREATE TABLE if not exists tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,

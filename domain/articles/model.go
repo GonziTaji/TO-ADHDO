@@ -25,3 +25,10 @@ type Article struct {
 	UpdatedAt string
 	DeletedAt string
 }
+
+type ArticlePrice struct {
+	Id         string
+	ArticleId  string
+	Desription string
+	CreatedAt  string
+}

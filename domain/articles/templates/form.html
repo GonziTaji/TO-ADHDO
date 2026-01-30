@@ -7,6 +7,7 @@
     <script type="module" src="/public/lib/articles/form.js"></script>
 
     {{ template "meta_tags" }}
+    {{ template "base_styles" }}
 </head>
 
 <body>
@@ -43,6 +44,42 @@
             </ul>
         </fieldset>
 
+        <fieldset>
+            <legend>Price</legend>
+
+            <div class="prices-grid">
+                <div class="prices-grid_row--header">
+                    <span>Price</span>
+                    <span>Description</span>
+                    <span>Created At</span>
+                    <span>Active</span>
+                </div>
+
+                <form class="prices-grid_row--newitem">
+                    <label for="new_price">New price: </label>
+                    <input type="text" pattern="\d+" placeholder="0" />
+                    <button type="submit" formaction="/confirm-price">Confirm</button>
+                    <button type="reset" formaction="/reset-price">Reset</button>
+                </form>
+
+                {{range .Prices}}
+                <div class="prices-grid_row--item">
+                    <span>{{.Price}}</span>
+                    <span>{{.Description}}</span>
+                    <span>{{.CreatedAt}}</span>
+                    <span>{{if .IsActive}}YES{{end}}</span>
+                </div>
+
+                {{ else }}
+
+                <div class="prices-grid_item">
+                    <span class="prices-grid_no-items-row">No items</span>
+                </div>
+                {{end}}
+
+            </div>
+        </fieldset>
+
         <datalist id="datalist-available-tags">
             {{ range .TagOptions }}
             <option value="{{.Name}}" data-tagid="{{.Id}}" {{if .Disabled}}disabled{{end}}></option>
@@ -50,8 +87,8 @@
         </datalist>
 
         <div>
-            <button type="submit">Save article</button>
-            <button type="reset">Reset</button>
+            <button type="submit" formaction="save-article">Save article</button>
+            <button type="reset" formaction="reset-article">Reset</button>
         </div>
 
         <small>Last updated: {{.Article.UpdatedAt}}</small>
