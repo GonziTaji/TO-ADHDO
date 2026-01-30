@@ -237,6 +237,8 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 		new_article.Tags = append(new_article.Tags, tag)
 	}
 
+	log.Printf("final tags: %v", new_article.Tags)
+
 	err := c.store.Update(&new_article)
 
 	if err != nil {

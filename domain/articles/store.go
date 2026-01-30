@@ -291,6 +291,8 @@ func (s *Store) Update(article *Article) error {
 
 	tags_ids_for_new_relationships, err := createTags(tx, new_tags_names)
 
+	log.Printf("tags_ids_for_new_relationships: %s\n", tags_ids_for_new_relationships)
+
 	if err != nil {
 		log.Printf("error creating new tags for article: %s\n", err.Error())
 		tx.Rollback()
@@ -333,17 +335,21 @@ func (s *Store) Update(article *Article) error {
 	}
 
 	for id := range tags_ids_in_relationships {
-		log.Printf("	> id: %s", id)
+		log.Printf("	> tag in relationship id: %s\n", id)
 	}
 
 	for _, tag_id := range input_tags_ids {
 		if tags_ids_in_relationships[tag_id] == "" {
+			log.Printf("	>	> adding id %s to tags_ids_for_new_relationships\n", tag_id)
 			tags_ids_for_new_relationships = append(tags_ids_for_new_relationships, tag_id)
 		}
 	}
 
+	log.Printf("tags_ids_for_new_relationships: %s\n", tags_ids_for_new_relationships)
+
 	for _, tag_id := range tags_ids_in_relationships {
 		log.Printf("input_tags_ids[tag_id_in_relationship]: %s\n", tags_ids_in_relationships[tag_id])
+
 		if input_tags_ids[tag_id] == "" {
 			_, err := tx.Exec(`
 					UPDATE articles_tags
@@ -364,6 +370,8 @@ func (s *Store) Update(article *Article) error {
 			}
 		}
 	}
+
+	log.Printf("tags_ids_for_new_relationships: %v\n", tags_ids_for_new_relationships)
 
 	if err := createArticleTags(tx, article.Id, tags_ids_for_new_relationships); err != nil {
 		log.Printf("could not create articles_tags of new tags for article id %s: %s\n", article.Id, err.Error())
@@ -484,6 +492,8 @@ func createTags(tx *sql.Tx, tags_names []string) ([]string, error) {
 }
 
 func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
+	log.Printf("tags_ids: %v", tags_ids)
+
 	if len(tags_ids) == 0 {
 		return nil
 	}
@@ -496,7 +506,7 @@ func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
 	)
 
 	for i, tag_id := range tags_ids {
-		query_args = append(query_args, tag_id, article_id)
+		query_args = append(query_args, article_id, tag_id)
 
 		if i < len(tags_ids)-1 {
 			query_sb.WriteString(" (?, ?),")
@@ -504,6 +514,9 @@ func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
 			query_sb.WriteString(" (?, ?);")
 		}
 	}
+
+	log.Printf("query: %s", query_sb.String())
+	log.Printf("args: %v", query_args)
 
 	res, err := tx.Exec(query_sb.String(), query_args...)
 

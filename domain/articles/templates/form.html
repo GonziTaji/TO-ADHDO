@@ -49,8 +49,12 @@
             {{ end }}
         </datalist>
 
-        <button type="submit">Save article</button>
-        <button type="reset">Reset</button>
+        <div>
+            <button type="submit">Save article</button>
+            <button type="reset">Reset</button>
+        </div>
+
+        <small>Last updated: {{.Article.UpdatedAt}}</small>
     </form>
 
     <template id="selected-tag-template">
