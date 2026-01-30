@@ -18,7 +18,14 @@
         <ul>
             {{ range . }}
             <li data-record-id="{{.Id}}">
-                <span>[ in {{.Usage}} articles <a href="/articles?tagid={{.Id}}" target="_parent">view</a>]</span>
+                <span>
+                    [ in {{.Usage}} articles
+
+                    {{ if ne .Usage 0 }}
+                    <a href="/articles?tagid={{.Id}}" target="_parent">view</a>
+                    {{end}}
+
+                    ]</span>
 
                 <span>{{.Name}}</span>
 

@@ -24,7 +24,7 @@ func (s *Store) List(options ListingTagsOptions) ([]TagItemList, error) {
 	sb_query.WriteString(`
 		SELECT t.id, t.name, t.created_at, t.updated_at, t.deleted_at, COUNT(at.article_id) as usage
 		FROM tags t
-		JOIN articles_tags at
+		LEFT JOIN articles_tags at
 			ON t.id = at.tag_id
 			AND at.deleted_at IS NULL
 	`)
