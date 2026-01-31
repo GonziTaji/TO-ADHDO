@@ -47,51 +47,51 @@
         <fieldset>
             <legend>Prices</legend>
 
-            <button type="button" data-action="add-new-price">Add new price</button>
+            <button id="open-new-price-dialog-btn" type="button" command="show-modal" commandfor="new-price-dialog">Add
+                new price</button>
 
-            <div class="prices-grid">
-                <div class="prices-grid_row--header">
+            <div id="prices-grid" data-has_new_price="false">
+                <div class="header-row">
                     <span>Price</span>
                     <span>Description</span>
                     <span>Created At</span>
                     <span></span>
                 </div>
 
-                <div class="prices-grid_row--new-item">
-                    <input type="text" id="new_price" pattern="\d+" placeholder="0" required />
+                <div class="new-item-row">
+                    <input type="text" name="new_price" id="new_price" pattern="\d+" placeholder="0" required
+                        readonly />
 
-                    <input type="text" id="new_price_description" placeholder="New price" />
+                    <input type="text" name="new_price_description" id="new_price_description"
+                        placeholder="No description" readonly />
 
                     <span>NEW</span>
 
                     <div>
                         <button type="button" data-action="remove-new-price">Remove new price</button>
+                        <button type="button" command="show-modal" commandfor="new-price-dialog">
+                            Edit new price
+                        </button>
                     </div>
                 </div>
 
-                {{range .Article.Prices}}
-                <div class="prices-grid_row--item">
+                {{range $index, $element := .Article.Prices}}
+                <div class="item-row">
                     <span>{{.Price}}</span>
-                    <span>{{.Description}}</span>
+                    <span>{{if .Description}}{{.Description}}{{else}}-{{end}}</span>
                     <span>{{.CreatedAt}}</span>
-                    <span>YES</span>
+                    <span>{{if eq $index 0}}Active{{end}} </span>
                 </div>
 
                 {{ else }}
 
-                <div class="prices-grid_row--no-items">
-                    <span>No items</span>
+                <div class="no-items-row">
+                    <span>No prices</span>
                 </div>
                 {{end}}
 
             </div>
         </fieldset>
-
-        <datalist id="datalist-available-tags">
-            {{ range .TagOptions }}
-            <option value="{{.Name}}" data-tagid="{{.Id}}" {{if .Disabled}}disabled{{end}}></option>
-            {{ end }}
-        </datalist>
 
         <div>
             <button type="submit" formaction="save-article">Save article</button>
@@ -104,6 +104,25 @@
     <template id="selected-tag-template">
         {{ template "selected-tag-template" }}
     </template>
+
+    <datalist id="datalist-available-tags">
+        {{ range .TagOptions }}
+        <option value="{{.Name}}" data-tagid="{{.Id}}" {{if .Disabled}}disabled{{end}}></option>
+        {{ end }}
+    </datalist>
+
+    <dialog id="new-price-dialog">
+        <form method="dialog">
+            <label for="price">Price:</label>
+            <input type="text" id="dialog_new_price" name="price" pattern="\d+" placeholder="0" required />
+
+            <label for="dialog_new_price_description">Description:</label>
+            <input type="text" id="dialog_new_price_description" name="description" placeholder="New price" />
+
+            <button value="confirm">Confirm</button>
+            <button type="button" command="close" commandfor="new-price-dialog">Cancel</button>
+        </form>
+    </dialog>
 
     <style>
         #articles-form {
@@ -123,7 +142,13 @@
                 }
             }
 
-            .prices-grid {
+            &:has([data-has_new_price="true"]) {
+                #open-new-price-dialog-btn {
+                    display: none;
+                }
+            }
+
+            #prices-grid {
                 position: relative;
                 display: grid;
                 grid-template-columns: repeat(4, auto);
@@ -140,28 +165,30 @@
                     align-content: center;
                 }
 
-                .prices-grid_row--no-items,
-                .prices-grid_row--header,
-                .prices-grid_row--item,
-                .prices-grid_row--new-item {
+                &[data-has_new_price="false"] {
+                    .new-item-row {
+                        display: none
+                    }
+                }
+
+                .no-items-row,
+                .header-row,
+                .item-row,
+                .new-item-row {
                     display: grid;
                     grid-column: 1/5;
                     grid-template-columns: subgrid;
                 }
 
-                .prices-grid_row--no-items {
+                .no-items-row {
                     text-align: center;
                     grid-template-columns: auto;
                 }
 
-                .prices-grid_row--new-item input {
+                .new-item-row input {
                     border: none;
+                    min-width: 40px;
                 }
-
-            }
-
-            [data-show="false"] {
-                display: none;
             }
         }
     </style>

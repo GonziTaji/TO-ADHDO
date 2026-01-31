@@ -16,6 +16,19 @@ function bindEvents() {
         tag_search_input.addEventListener("keydown", tagSearchKeyDownHandler)
     }
 
+    document.addEventListener('close', (e) => {
+        /** @type {HTMLDialogElement} */
+        const dialog = e.target.closest('dialog')
+
+        if (!dialog) return
+
+        switch (dialog.id) {
+            case 'new-price-dialog':
+                handleNewPriceSubmit(dialog)
+                break
+        }
+    }, { capture: true })
+
     document.addEventListener('click', (e) => {
         /** @type {HTMLButtonElement} */
         const btn = e.target.closest('button[data-action]')
@@ -32,39 +45,59 @@ function bindEvents() {
                 removeTag(btn.closest('li'))
                 break
 
-            case 'confirm-price':
-                confirmPrice()
+            case 'remove-new-price':
+                removeNewPrice()
                 break
-
-            case 'reset-price':
-                resetPrice()
-                break
-        }
-    })
-
-    document.addEventListener('input', (e) => {
-        const input = e.target.closest('input')
-
-        switch (input.id) {
-            case 'new_price':
-                updateAndReportValidity(input, priceValidator)
-                break;
         }
     })
 }
 
-/**
- * @param {HTMLInputElement} input
- * @param {(string) => string | null } validator
- */
-function updateAndReportValidity(input, validator) {
-    const err = validator(input.value)
+/** @param {HTMLDialogElement} dialog */
+function handleNewPriceSubmit(dialog) {
+    if (!dialog.returnValue) return
 
-    input.setCustomValidity(err || '')
+    const prices_grid = document.getElementById('prices-grid')
 
-    if (err) {
-        input.reportValidity()
+    if (!prices_grid) {
+        console.error(new Error('price grid element not found'))
+        return
     }
+
+    const grid_price_input = prices_grid.querySelector('[name="new_price"]')
+    const grid_description_input = prices_grid.querySelector('[name="new_price_description"]')
+
+    if (!grid_price_input || !grid_description_input) {
+        console.error(new Error('one or more elements could not be found'), {
+            elements: { grid_price_input, grid_description_input }
+        })
+        return
+    }
+
+    const dialog_form = dialog.querySelector('form')
+
+    if (!dialog_form) {
+        console.error(new Error('dialog doesn\'t have a form element'))
+        return
+    }
+
+    const fd = new FormData(dialog_form)
+    const raw_price = fd.get('price')
+    const price_err = priceValidator(raw_price)
+
+    if (price_err) {
+        const dialog_price_input = dialog_form.querySelector('[name="price"')
+        dialog_price_input.setCustomValidity(price_err)
+        dialog_price_input.reportValidity()
+        return
+    }
+
+    // To remove leading zeroes
+    const new_price_value = Number(raw_price).toString()
+
+    grid_price_input.value = new_price_value
+    grid_description_input.value = fd.get('description').trim()
+
+    prices_grid.dataset.has_new_price = true
 }
 
 /**
@@ -89,32 +122,16 @@ function priceValidator(price) {
     return null
 }
 
-function confirmPrice() {
-    const input_selector = 'input#new_price'
-    const /** @type {HTMLInputElement} */ input = document.querySelector(input_selector)
+function removeNewPrice() {
+    const el = document.querySelector('[data-has_new_price="true"]')
 
-    if (!input) {
-        console.error(new Error(`no input element matched selector : ${input_selector}`))
-        alert('uh oh, fatal error')
+    if (!el) {
+        console.error('No match for element to remove new price')
         return
     }
 
-    updateAndReportValidity(input, priceValidator)
+    el.dataset.has_new_price = false
 
-    if (!input.validity.valid) {
-        return
-    }
-
-    const loader = document.querySelector('.prices-grid .loader')
-    loader.dataset.show = true
-}
-
-function resetPrice() {
-    const input_selector = 'input#new_price'
-    const /** @type {HTMLInputElement} */ input = document.querySelector(input_selector)
-
-    input.disabled = false
-    input.value = ''
 }
 
 /**
