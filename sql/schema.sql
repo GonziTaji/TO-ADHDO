@@ -20,10 +20,16 @@ CREATE TABLE if not exists articles_images (
 
 CREATE TABLE if not exists articles_prices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    price INTEGER NOT NULL,
     article_id INTEGER NOT NULL,
-    description TEXT DEFAULT NULL,
+    description TEXT NOT NULL DEFAULT "",
     created_at TEXT DEFAULT current_timestamp NOT NULL
 );
+
+insert into articles_prices (article_id, price) values
+(13, 1000), (13, 1200), (13, 890);
+
+
 
 CREATE TABLE if not exists tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

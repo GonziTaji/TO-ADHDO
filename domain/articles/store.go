@@ -184,6 +184,34 @@ func (s *Store) Get(article_id string) (Article, error) {
 
 	rows.Close()
 
+	prices_rows, err := s.db.Query(`
+		SELECT id, article_id, price, description, created_at
+		FROM articles_prices
+		WHERE article_id = ?
+		ORDER BY created_at DESC;
+	`, article.Id)
+
+	if err != nil {
+		return article, err
+	}
+
+	for prices_rows.Next() {
+		var price ArticlePrice
+
+		if err := prices_rows.Scan(
+			&price.Id,
+			&price.ArticleId,
+			&price.Price,
+			&price.Description,
+			&price.CreatedAt,
+		); err != nil {
+			return article, err
+		}
+
+		log.Printf("appending price to article's prices: %v", price)
+		article.Prices = append(article.Prices, price)
+	}
+
 	return article, nil
 }
 

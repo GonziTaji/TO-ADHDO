@@ -45,38 +45,42 @@
         </fieldset>
 
         <fieldset>
-            <legend>Price</legend>
+            <legend>Prices</legend>
+
+            <button type="button" data-action="add-new-price">Add new price</button>
 
             <div class="prices-grid">
-                <div class="prices-grid_header-row">
+                <div class="prices-grid_row--header">
                     <span>Price</span>
                     <span>Description</span>
                     <span>Created At</span>
-                    <span>Active</span>
+                    <span></span>
                 </div>
 
-                <div class="prices-grid_new-item-row" data-show="true">
-                    <button type="button" data-action="add-new-price">Add new price</label>
-                </div>
-
-                <div class="prices-grid_new-item-row" data-show="false">
-                    <label for="new_price">New price: </label>
+                <div class="prices-grid_row--new-item">
                     <input type="text" id="new_price" pattern="\d+" placeholder="0" required />
-                    <button type="button" data-action="remove-new-price">-</button>
+
+                    <input type="text" id="new_price_description" placeholder="New price" />
+
+                    <span>NEW</span>
+
+                    <div>
+                        <button type="button" data-action="remove-new-price">Remove new price</button>
+                    </div>
                 </div>
 
-                {{range .Prices}}
+                {{range .Article.Prices}}
                 <div class="prices-grid_row--item">
                     <span>{{.Price}}</span>
                     <span>{{.Description}}</span>
                     <span>{{.CreatedAt}}</span>
-                    <span>{{if .IsActive}}YES{{end}}</span>
+                    <span>YES</span>
                 </div>
 
                 {{ else }}
 
-                <div class="prices-grid_item">
-                    <span class="prices-grid_no-items-row">No items</span>
+                <div class="prices-grid_row--no-items">
+                    <span>No items</span>
                 </div>
                 {{end}}
 
@@ -121,6 +125,39 @@
 
             .prices-grid {
                 position: relative;
+                display: grid;
+                grid-template-columns: repeat(4, auto);
+                /* border */
+                row-gap: 1px;
+                column-gap: 1px;
+                padding: 1px;
+                background-color: #00000055;
+
+                >*>* {
+                    background-color: white;
+                    padding: 4px 12px;
+                    justify-content: center;
+                    align-content: center;
+                }
+
+                .prices-grid_row--no-items,
+                .prices-grid_row--header,
+                .prices-grid_row--item,
+                .prices-grid_row--new-item {
+                    display: grid;
+                    grid-column: 1/5;
+                    grid-template-columns: subgrid;
+                }
+
+                .prices-grid_row--no-items {
+                    text-align: center;
+                    grid-template-columns: auto;
+                }
+
+                .prices-grid_row--new-item input {
+                    border: none;
+                }
+
             }
 
             [data-show="false"] {

@@ -17,7 +17,6 @@ type TagOption struct {
 type ArticleFormData struct {
 	Article    Article
 	TagOptions []TagOption
-	Prices     []ArticlePrice
 }
 
 type RenderArticleViewOptions struct {
@@ -113,16 +112,10 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 	tags_ids_in_article := make(map[string]bool)
 
 	for _, tag := range article.Tags {
-		log.Printf("adding tag id %s to map\n", tag.Id)
 		tags_ids_in_article[tag.Id] = true
 	}
 
-	log.Printf("final map: %v\n", tags_ids_in_article)
-
 	for i, tag := range tags {
-		log.Printf("checking if option of tag id %s is disabled\n", tag.Id)
-		log.Printf(" >>> map[%s] = %v\n", tag.Id, tags_ids_in_article[tag.Id])
-
 		tag_options[i] = TagOption{
 			Name:     tag.Name,
 			Id:       tag.Id,
@@ -134,8 +127,6 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	log.Printf("options: %v\n", tag_options)
 
 	formData := ArticleFormData{
 		Article:    article,

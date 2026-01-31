@@ -1,6 +1,8 @@
 package articles
 
-import "github.com/yogusita/to-adhdo/domain/tags"
+import (
+	"github.com/yogusita/to-adhdo/domain/tags"
+)
 
 type Image struct {
 	Id string
@@ -20,6 +22,7 @@ type Article struct {
 	Description string
 	Tags        []tags.Tag
 	Images      []Image
+	Prices      []ArticlePrice
 
 	CreatedAt string
 	UpdatedAt string
@@ -27,8 +30,9 @@ type Article struct {
 }
 
 type ArticlePrice struct {
-	Id         string
-	ArticleId  string
-	Desription string
-	CreatedAt  string
+	Id          string
+	ArticleId   string
+	Price       int
+	Description string
+	CreatedAt   string
 }
