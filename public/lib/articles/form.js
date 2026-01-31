@@ -7,33 +7,11 @@ function init() {
 }
 
 function bindEvents() {
-    document.addEventListener('submit', (e) => {
-        console.log("submit event", e)
-        console.log("formaction", e.submitter)
-
-        e.preventDefault()
-
-        const form = e.target.closest('form')
-
-        if (!form) return
-    })
-
-    document.addEventListener('reset', (e) => {
-        console.log("reset event", e)
-        console.log("formaction", e.submitter)
-
-        e.preventDefault()
-
-        const form = e.target.closest('form')
-
-        if (!form) return
-    })
-
-
     {
         const form = document.getElementById('articles-form')
-        // form.addEventListener("submit", formSubmitHandler)
-        // form.addEventListener("reset", formResetHandler)
+        form.addEventListener("submit", formSubmitHandler)
+        form.addEventListener("reset", formResetHandler)
+
         const tag_search_input = form.querySelector('input[name="tag_search"]')
         tag_search_input.addEventListener("keydown", tagSearchKeyDownHandler)
     }
@@ -44,17 +22,99 @@ function bindEvents() {
 
         if (!btn) return
 
-        const ds = btn.dataset
+        const { action, tagid } = btn.dataset
 
-        switch (ds.action) {
+        switch (action) {
             case 'add-tag':
-                addTag(ds.tagid)
+                addTag(tagid)
                 break
             case 'remove-tag':
                 removeTag(btn.closest('li'))
                 break
+
+            case 'confirm-price':
+                confirmPrice()
+                break
+
+            case 'reset-price':
+                resetPrice()
+                break
         }
     })
+
+    document.addEventListener('input', (e) => {
+        const input = e.target.closest('input')
+
+        switch (input.id) {
+            case 'new_price':
+                updateAndReportValidity(input, priceValidator)
+                break;
+        }
+    })
+}
+
+/**
+ * @param {HTMLInputElement} input
+ * @param {(string) => string | null } validator
+ */
+function updateAndReportValidity(input, validator) {
+    const err = validator(input.value)
+
+    input.setCustomValidity(err || '')
+
+    if (err) {
+        input.reportValidity()
+    }
+}
+
+/**
+ * @param {string} price
+ * @returns {string | null}
+ * */
+function priceValidator(price) {
+    if (!price || String(price).trim().length == 0) {
+        return 'Please set a value for the new price'
+    }
+
+    const parsed_price = Number(price)
+
+    if (isNaN(parsed_price)) {
+        return 'Please input a valid number'
+    }
+
+    if (parsed_price < 1) {
+        return 'The price must be greater than 0'
+    }
+
+    return null
+}
+
+function confirmPrice() {
+    const input_selector = 'input#new_price'
+    const /** @type {HTMLInputElement} */ input = document.querySelector(input_selector)
+
+    if (!input) {
+        console.error(new Error(`no input element matched selector : ${input_selector}`))
+        alert('uh oh, fatal error')
+        return
+    }
+
+    updateAndReportValidity(input, priceValidator)
+
+    if (!input.validity.valid) {
+        return
+    }
+
+    const loader = document.querySelector('.prices-grid .loader')
+    loader.dataset.show = true
+}
+
+function resetPrice() {
+    const input_selector = 'input#new_price'
+    const /** @type {HTMLInputElement} */ input = document.querySelector(input_selector)
+
+    input.disabled = false
+    input.value = ''
 }
 
 /**

@@ -48,19 +48,22 @@
             <legend>Price</legend>
 
             <div class="prices-grid">
-                <div class="prices-grid_row--header">
+                <div class="prices-grid_header-row">
                     <span>Price</span>
                     <span>Description</span>
                     <span>Created At</span>
                     <span>Active</span>
                 </div>
 
-                <form class="prices-grid_row--newitem">
+                <div class="prices-grid_new-item-row" data-show="true">
+                    <button type="button" data-action="add-new-price">Add new price</label>
+                </div>
+
+                <div class="prices-grid_new-item-row" data-show="false">
                     <label for="new_price">New price: </label>
-                    <input type="text" pattern="\d+" placeholder="0" />
-                    <button type="submit" formaction="/confirm-price">Confirm</button>
-                    <button type="reset" formaction="/reset-price">Reset</button>
-                </form>
+                    <input type="text" id="new_price" pattern="\d+" placeholder="0" required />
+                    <button type="button" data-action="remove-new-price">-</button>
+                </div>
 
                 {{range .Prices}}
                 <div class="prices-grid_row--item">
@@ -114,6 +117,14 @@
                     display: grid;
                     row-gap: 4px;
                 }
+            }
+
+            .prices-grid {
+                position: relative;
+            }
+
+            [data-show="false"] {
+                display: none;
             }
         }
     </style>
