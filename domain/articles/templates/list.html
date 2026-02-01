@@ -189,6 +189,16 @@
             <span></span>
         </div>
 
+        <div>
+
+            {{range $index, $element := .Prices }}
+            {{ if eq $index 0}}
+            <span>Price: </span>
+            <span>{{.Price}}</span>
+            {{end}}
+            {{end}}
+        </div>
+
     </div>
 
     <div class="buttons-container">

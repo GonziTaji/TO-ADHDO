@@ -74,10 +74,14 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 
 	articles_count := len(articles_ids)
 
-	query_placeholders := make([]string, articles_count)
+	var articles_ids_placeholders strings.Builder
 
 	for i := range articles_count {
-		query_placeholders[i] = "?"
+		if i == 0 {
+			articles_ids_placeholders.WriteString("?")
+		} else {
+			articles_ids_placeholders.WriteString(", ?")
+		}
 	}
 
 	query := fmt.Sprintf(`
@@ -92,7 +96,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 		JOIN tags on tags.id = pivot.tag_id
 		WHERE pivot.article_id IN (%s)
 		AND pivot.deleted_at IS NULL;
-	`, strings.Join(query_placeholders, ","))
+	`, articles_ids_placeholders.String())
 
 	rows, err = s.db.Query(query, articles_ids...)
 
@@ -123,6 +127,43 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 
 	if err = rows.Close(); err != nil {
 		return nil, err
+	}
+
+	query = fmt.Sprintf(`
+		SELECT
+			id,
+			article_id,
+			price,
+			description,
+			created_at
+		FROM articles_prices
+		WHERE article_id IN (%s)
+		ORDER BY created_at DESC;
+	`, articles_ids_placeholders.String())
+
+	rows, err = s.db.Query(query, articles_ids...)
+
+	if err != nil {
+		// TODO: handle error
+		return nil, err
+	}
+
+	for rows.Next() {
+		var price ArticlePrice
+
+		if err := rows.Scan(
+			&price.Id,
+			&price.ArticleId,
+			&price.Price,
+			&price.Description,
+			&price.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		article_idx := slices.IndexFunc(articles, func(a Article) bool { return a.Id == price.ArticleId })
+		article := &articles[article_idx]
+		article.Prices = append(article.Prices, price)
 	}
 
 	return articles, nil
@@ -608,7 +649,7 @@ func createPrices(tx *sql.Tx, article Article) error {
 	log.Printf("query: %s\n", query_sb.String())
 	log.Printf("queryargs: %v\n", query_args)
 
-	_, err := tx.Exec(query_sb.String(), query_args...)
+	_, err := tx.Exec(query_sb.String(), query_args)
 
 	if err != nil {
 		log.Printf("error creating prices: %s\n", err.Error())
