@@ -237,6 +237,16 @@ func (s *Store) Create(article *Article) (string, error) {
 
 	i_article_id, _ := res.LastInsertId()
 	article_id := dbIdToString(i_article_id)
+	article.Id = article_id
+
+	if len(article.Prices) > 0 {
+		err := createPrices(tx, *article)
+
+		if err != nil {
+			tx.Rollback()
+			return "", err
+		}
+	}
 
 	var tags_ids []string
 	var tags_names_to_create []string
@@ -301,6 +311,15 @@ func (s *Store) Update(article *Article) error {
 		log.Printf("error updating article: %s\n", err.Error())
 		tx.Rollback()
 		return err
+	}
+
+	if len(article.Prices) > 0 {
+		err := createPrices(tx, *article)
+
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	input_tags_ids := make(map[string]string)
@@ -563,4 +582,38 @@ func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
 
 func dbIdToString(id int64) string {
 	return strconv.Itoa(int(id))
+}
+
+func createPrices(tx *sql.Tx, article Article) error {
+	var query_sb strings.Builder
+	query_args := QueryArgs{}
+
+	query_sb.WriteString(`
+			INSERT INTO articles_prices (article_id, price, description)
+			VALUES 
+		`)
+
+	for i, price := range article.Prices {
+		query_args = append(query_args, article.Id, price.Price, price.Description)
+
+		if i == 0 {
+			query_sb.WriteString(" (?, ?, ?)")
+		} else {
+			query_sb.WriteString(", (?, ?, ?)")
+		}
+	}
+
+	query_sb.WriteString(";")
+
+	log.Printf("query: %s\n", query_sb.String())
+	log.Printf("queryargs: %v\n", query_args)
+
+	_, err := tx.Exec(query_sb.String(), query_args...)
+
+	if err != nil {
+		log.Printf("error creating prices: %s\n", err.Error())
+		return err
+	}
+
+	return nil
 }

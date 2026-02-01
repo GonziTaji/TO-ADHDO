@@ -14,7 +14,7 @@ type TagOption struct {
 	Disabled bool
 }
 
-type ArticleFormData struct {
+type ArticleFormTemplateData struct {
 	Article    Article
 	TagOptions []TagOption
 }
@@ -30,16 +30,14 @@ type ListingArticlesOptions struct {
 	IncludeDeleted bool `query:"include_deleted"`
 }
 
-type CreateArticleData struct {
-	Name        string   `form:"name" binding:"required"`
-	Description string   `form:"description"`
-	TagNames    []string `form:"tags_names"`
-	TagIds      []string `form:"tags_ids"`
-}
-
-type UpdateArticleData struct {
-	Id string `form:"id"`
-	CreateArticleData
+type ArticleFormData struct {
+	Id                  string   `form:"id"`
+	Name                string   `form:"name" binding:"required"`
+	Description         string   `form:"description"`
+	TagNames            []string `form:"tags_names"`
+	TagIds              []string `form:"tags_ids"`
+	NewPrice            int      `form:"new_price"`
+	NewPriceDescription string   `form:"new_price_description"`
 }
 
 type CreateArticleResponse struct {
@@ -128,7 +126,7 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 		return
 	}
 
-	formData := ArticleFormData{
+	formData := ArticleFormTemplateData{
 		Article:    article,
 		TagOptions: tag_options,
 	}
@@ -171,7 +169,7 @@ func (c *Controller) DeleteHandler(ctx *gin.Context) {
 }
 
 func (c *Controller) CreateHandler(ctx *gin.Context) {
-	var form CreateArticleData
+	var form ArticleFormData
 
 	if err := ctx.Bind(&form); err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
@@ -194,6 +192,16 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 		new_article.Tags = append(new_article.Tags, tag)
 	}
 
+	if form.NewPrice != 0 {
+		log.Printf(">	>	>	NEW PRICE: %d\n", form.NewPrice)
+		new_article.Prices = append(new_article.Prices, ArticlePrice{
+			Price:       form.NewPrice,
+			Description: form.NewPriceDescription,
+		})
+	} else {
+		log.Println(">	>	>	NO NEW PRICE")
+	}
+
 	article_id, err := c.store.Create(&new_article)
 
 	if err != nil {
@@ -205,7 +213,7 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 }
 
 func (c *Controller) UpdateHandler(ctx *gin.Context) {
-	var form UpdateArticleData
+	var form ArticleFormData
 
 	if err := ctx.Bind(&form); err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
@@ -227,6 +235,16 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 		}
 
 		new_article.Tags = append(new_article.Tags, tag)
+	}
+
+	if form.NewPrice != 0 {
+		log.Printf(">	>	>	NEW PRICE: %d\n", form.NewPrice)
+		new_article.Prices = append(new_article.Prices, ArticlePrice{
+			Price:       form.NewPrice,
+			Description: form.NewPriceDescription,
+		})
+	} else {
+		log.Println(">	>	>	NO NEW PRICE")
 	}
 
 	log.Printf("final tags: %v", new_article.Tags)
