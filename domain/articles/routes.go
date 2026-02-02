@@ -15,6 +15,7 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	group := router.Group("articles")
 
 	group.GET("/", controller.GetListHandler)
+	group.GET("/catalog", controller.GetCatalogHandler)
 	group.GET("/new", controller.GetFormHandler)
 	group.GET("/:article_id", controller.GetHandler)
 	group.GET("/:article_id/edit", controller.GetFormHandler)

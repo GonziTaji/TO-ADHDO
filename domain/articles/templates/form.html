@@ -31,6 +31,20 @@
             </div>
         </fieldset>
 
+        <fieldset id="images">
+            <legend>Images</legend>
+
+            <label id="article_image_dropzone" for="article_image" data-dragstatus>IMAGE</label>
+            <input type="file" hidden multiple accept="image/*" id="article_image" name="article_image" />
+
+            <div id="images-grid">
+                {{range .Article.Images}}
+                {{ template "articles/form/image-miniature" . }}
+                {{end}}
+            </div>
+
+        </fieldset>
+
         <fieldset id="tags-section">
             <legend>Tags</legend>
 
@@ -39,7 +53,7 @@
 
             <ul data-component="selected-tags-list">
                 {{ range .Article.Tags }}
-                {{ template "selected-tag-template" . }}
+                {{ template "articles/form/selected-tag" . }}
                 {{ end }}
             </ul>
         </fieldset>
@@ -102,7 +116,7 @@
     </form>
 
     <template id="selected-tag-template">
-        {{ template "selected-tag-template" }}
+        {{ template "articles/form/selected-tag" }}
     </template>
 
     <datalist id="datalist-available-tags">
@@ -113,7 +127,7 @@
 
     <dialog id="new-price-dialog">
         <form method="dialog">
-            <label for="price">Price:</label>
+            <label for="dialog_new_price">Price:</label>
             <input type="text" id="dialog_new_price" name="price" pattern="\d+" placeholder="0" required />
 
             <label for="dialog_new_price_description">Description:</label>
@@ -197,10 +211,20 @@
 </html>
 {{ end }}
 
-{{ define "selected-tag-template" }}
+{{ define "articles/form/selected-tag" }}
 <li>
     <input type="text" name="tags_names" value="{{.Name}}" readonly />
     <input type="hidden" name="tags_ids" value="{{.Id}}" />
     <button data-action="remove-tag" type="button"> &times; </button>
 </li>
+{{ end }}
+
+{{ define "articles/form/image-miniature" }}
+<div class="image-miniature">
+    <a href="{{.Url}}" target="_blank">
+        <img src="{{.Url}}" alt="article-image" />
+    </a>
+
+    <button data-action="remove-image" data-imageid="{{.Id}}">Remove</button>
+</div>
 {{ end }}

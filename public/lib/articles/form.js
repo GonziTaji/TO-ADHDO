@@ -16,6 +16,33 @@ function bindEvents() {
         tag_search_input.addEventListener("keydown", tagSearchKeyDownHandler)
     }
 
+    bindDragAndDropEvents()
+
+    document.addEventListener('change', async (e) => {
+        /** @type {HTMLInputElement} */
+        const input = e.target.closest('input')
+
+        if (!input) return
+
+        switch (input.name) {
+            case 'article_image':
+                const fd = new FormData()
+
+                if (!input.files || input.files.length == 0) {
+                    console.error(new Error('no file'))
+                    return
+                }
+
+                fd.set('article_image', input.files[0])
+
+                const r = await fetch('/api/uploads/articles_images', { method: 'POST' })
+
+                console.log(await r.text())
+
+                break;
+        }
+    })
+
     document.addEventListener('close', (e) => {
         /** @type {HTMLDialogElement} */
         const dialog = e.target.closest('dialog')
@@ -50,6 +77,47 @@ function bindEvents() {
                 break
         }
     })
+}
+
+function bindDragAndDropEvents() {
+    document.addEventListener('dragenter', (e) => {
+        const subject = e.target.closest('[data-dragstatus]')
+        if (!subject) return
+        subject.dataset.dragstatus = e.type
+    })
+
+    document.addEventListener("drop", (e) => {
+        e.preventDefault()
+
+        const subject = e.target.closest('[data-dragstatus]')
+
+        if (!subject) return
+        subject.dataset.dragstatus = ""
+
+        if (subject.id === "article_image_dropzone") {
+            /** @type {HTMLInputElement} */
+            const file_input = document.querySelector('input[type="file"]#article_image')
+
+            if (!file_input) {
+                console.log(new Error('No input element found'))
+                return
+            }
+
+            file_input.files.ok
+        }
+
+    }, { capture: true })
+
+    document.addEventListener('dragover', (e) => {
+        e.preventDefault()
+    })
+
+    document.addEventListener('dragleave', (e) => {
+        const subject = e.target.closest('[data-dragstatus]')
+        if (!subject) return
+        subject.dataset.dragstatus = e.type
+    })
+
 }
 
 /** @param {HTMLDialogElement} dialog */

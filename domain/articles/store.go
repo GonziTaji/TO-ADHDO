@@ -649,7 +649,7 @@ func createPrices(tx *sql.Tx, article Article) error {
 	log.Printf("query: %s\n", query_sb.String())
 	log.Printf("queryargs: %v\n", query_args)
 
-	_, err := tx.Exec(query_sb.String(), query_args)
+	_, err := tx.Exec(query_sb.String(), query_args...)
 
 	if err != nil {
 		log.Printf("error creating prices: %s\n", err.Error())

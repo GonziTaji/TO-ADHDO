@@ -134,6 +134,26 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 	ctx.HTML(http.StatusOK, "articles/form", formData)
 }
 
+func (c *Controller) GetCatalogHandler(ctx *gin.Context) {
+	var options ListingArticlesOptions
+
+	if err := ctx.ShouldBindQuery(&options); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	articles, err := c.store.List(&options)
+
+	log.Printf("articles in list: %v", articles)
+
+	if err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx.HTML(http.StatusOK, "articles/catalog", articles)
+}
+
 func (c *Controller) GetListHandler(ctx *gin.Context) {
 	var options ListingArticlesOptions
 
