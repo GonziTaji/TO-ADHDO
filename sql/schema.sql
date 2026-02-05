@@ -12,10 +12,7 @@ CREATE TABLE if not exists articles_images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     article_id INTEGER NOT NULL,
     path TEXT NOT NULL,
-    alt TEXT NULL,
-    created_at TEXT DEFAULT current_timestamp NOT NULL,
-    updated_at TEXT DEFAULT current_timestamp NOT NULL,
-    deleted_at TEXT DEFAULT NULL
+    created_at TEXT DEFAULT current_timestamp NOT NULL
 );
 
 CREATE TABLE if not exists articles_prices (

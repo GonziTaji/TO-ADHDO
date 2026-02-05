@@ -4,24 +4,13 @@ import (
 	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
-type Image struct {
-	Id string
-
-	Path string
-	Alt  string
-
-	CreatedAt string
-	UpdatedAt string
-	DeletedAt string
-}
-
 type Article struct {
 	Id string
 
 	Name        string
 	Description string
 	Tags        []tags.Tag
-	Images      []Image
+	Images      []ArticleImage
 	Prices      []ArticlePrice
 
 	CreatedAt string
@@ -35,4 +24,11 @@ type ArticlePrice struct {
 	Price       int
 	Description string
 	CreatedAt   string
+}
+
+type ArticleImage struct {
+	Id        string
+	ArticleId string
+	Path      string
+	CreatedAt string
 }

@@ -141,34 +141,40 @@ function bindDragAndDropEvents() {
 
 /** @param {File} file */
 async function uploadImage(file) {
-    const template = document.getElementById('articles/form/image-miniature--loader')
-    const new_loading_block = getFirstChildCopyFromTemplate(template)
+    const template = document.getElementById('articles/form/image-miniature')
+    const miniature_block = getFirstChildCopyFromTemplate(template)
 
     const url = URL.createObjectURL(file)
+    const aux = file.name.split('.')
+    const ext = aux.pop()
+    const id = `local-${aux.join('')}-${Date.now()}.${ext}`
+
 
     console.log('tmp url', url)
     console.log('tmp file name', file.name)
+    console.log('tmp id ', id)
 
-    new_loading_block.querySelector('a').href = url
-    new_loading_block.querySelector('img').src = url
-    new_loading_block.querySelector('img').alt = file.name
+    miniature_block.dataset.imageid = id
+
+    miniature_block.querySelector('a').href = url
+    miniature_block.querySelector('img').src = url
+    miniature_block.querySelector('label').htmlFor += id
+    miniature_block.querySelector('input').id += id
+    miniature_block.querySelector('input').value = url
 
     const images_grid = document.getElementById('images-grid')
-    images_grid.appendChild(new_loading_block)
+    images_grid.appendChild(miniature_block)
 
-    console.log('images gridd')
-
-
-    const fd = new FormData()
-    fd.set('file', file)
-
-    const response = await postWithProgress('/articles/uploads', fd, (progress => {
-        new_loading_block.dataset.progress = progress
-    }))
-
-    new_loading_block.remove()
-
-    images_grid.innerHTML += response.body
+    // const fd = new FormData()
+    // fd.set('file', file)
+    //
+    // const response = await postWithProgress('/articles/uploads', fd, (progress => {
+    //     miniature_block.dataset.progress = progress
+    // }))
+    //
+    // miniature_block.remove()
+    //
+    // images_grid.innerHTML += response.body
 }
 
 /** @param {HTMLDialogElement} dialog */

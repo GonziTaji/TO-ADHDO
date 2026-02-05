@@ -223,7 +223,9 @@ func (s *Store) Get(article_id string) (Article, error) {
 		}
 	}
 
-	rows.Close()
+	if err := rows.Close(); err != nil {
+		return article, err
+	}
 
 	prices_rows, err := s.db.Query(`
 		SELECT id, article_id, price, description, created_at
@@ -251,6 +253,41 @@ func (s *Store) Get(article_id string) (Article, error) {
 
 		log.Printf("appending price to article's prices: %v", price)
 		article.Prices = append(article.Prices, price)
+	}
+
+	if err := prices_rows.Close(); err != nil {
+		return article, err
+	}
+
+	images_rows, err := s.db.Query(`
+		SELECT id, article_id, path, created_at
+		FROM articles_images
+		WHERE article_id = ?
+		ORDER BY created_at DESC;
+	`, article.Id)
+
+	if err != nil {
+		return article, err
+	}
+
+	for images_rows.Next() {
+		var image ArticleImage
+
+		if err := images_rows.Scan(
+			&image.Id,
+			&image.ArticleId,
+			&image.Path,
+			&image.CreatedAt,
+		); err != nil {
+			return article, err
+		}
+
+		log.Printf("appending price to article's prices: %v", image)
+		article.Images = append(article.Images, image)
+	}
+
+	if err := images_rows.Close(); err != nil {
+		return article, err
 	}
 
 	return article, nil

@@ -44,6 +44,10 @@
                 {{ template "articles/form/image-miniature" . }}
                 {{end}}
             </div>
+
+            <template id="articles/form/image-miniature">
+                {{ template "articles/form/image-miniature" }}
+            </template>
         </fieldset>
 
         <fieldset id="tags-section">
@@ -182,7 +186,19 @@
 
                 #images-grid {
                     .image-miniature {
-                        img {}
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        width: max-content;
+
+                        .image-link {
+                            grid-column: 1 / 3;
+
+                            img {
+                                object-fit: scale-down;
+                                width: 200px;
+                                height: 200px;
+                            }
+                        }
                     }
                 }
             }
@@ -245,18 +261,16 @@
 {{ end }}
 
 {{ define "articles/form/image-miniature" }}
-<div class="image-miniature" data-imageid="{{.Name}}">
-    <a href="{{.Path}}" target="_blank">
-        <img src="{{.Path}}" alt="upload" />
+<div class="image-miniature" data-imageid="{{.Id}}">
+    <a class="image-link" href="{{.Path}}" target="_blank">
+        <img src="{{.Path}}" alt="miniature" />
     </a>
 
-    <label for="image-input-{{.Name}}">
+    <label for="image-input-{{.Id}}">
         Change
-        <input type="file" id="image-input-{{.Name}}" name="image-input" accept="image/*" hidden />
+        <input type="hidden" value={{.Path}} id="image-input-{{.Id}}" name="article_images" accept="image/*" />
     </label>
 
     <button data-action="remove-image">Remove</button>
-
-    <input type="hidden" value="{{.Path}}" name="article_images" hidden />
 </div>
 {{ end }}
