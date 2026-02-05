@@ -21,7 +21,7 @@ import (
 // Based on https://github.com/gin-gonic/examples/blob/master/secure-web-app/main.go
 func setupSecurityHeaders(c *gin.Context) {
 	cspPolicy := "default-src 'self'; connect-src *; font-src *; " +
-		"script-src-elem * 'unsafe-inline'; img-src * data:; style-src * 'unsafe-inline';"
+		"script-src-elem * 'unsafe-inline'; img-src * data: blob:; style-src * 'unsafe-inline';"
 
 	permPolicy := "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=()," +
 		"magnetometer=(),gyroscope=(),fullscreen=(self),payment=()"

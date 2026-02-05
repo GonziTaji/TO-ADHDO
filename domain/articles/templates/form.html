@@ -31,18 +31,19 @@
             </div>
         </fieldset>
 
-        <fieldset id="images">
+        <fieldset data-dropzone_id="article_images" id="images" data-is_drag_over>
             <legend>Images</legend>
 
-            <label id="article_image_dropzone" for="article_image" data-dragstatus>IMAGE</label>
-            <input type="file" hidden multiple accept="image/*" id="article_image" name="article_image" />
+            <label for="image_uploader">
+                Upload
+                <input type="file" id="image_uploader" name="image_uploader" hidden />
+            </label>
 
             <div id="images-grid">
                 {{range .Article.Images}}
                 {{ template "articles/form/image-miniature" . }}
                 {{end}}
             </div>
-
         </fieldset>
 
         <fieldset id="tags-section">
@@ -119,6 +120,14 @@
         {{ template "articles/form/selected-tag" }}
     </template>
 
+    <template id="articles/form/image-miniature--loader" data-progress="0">
+        <div class="image-miniature--loading">
+            <a href="" target="_blank">
+                <img src="" alt="article-image" />
+            </a>
+        </div>
+    </template>
+
     <datalist id="datalist-available-tags">
         {{ range .TagOptions }}
         <option value="{{.Name}}" data-tagid="{{.Id}}" {{if .Disabled}}disabled{{end}}></option>
@@ -159,6 +168,22 @@
             &:has([data-has_new_price="true"]) {
                 #open-new-price-dialog-btn {
                     display: none;
+                }
+            }
+
+            #images {
+                &[data-is_drag_over="true"] {
+                    border: 2px dashed green;
+
+                    legend {
+                        color: green;
+                    }
+                }
+
+                #images-grid {
+                    .image-miniature {
+                        img {}
+                    }
                 }
             }
 
@@ -220,11 +245,18 @@
 {{ end }}
 
 {{ define "articles/form/image-miniature" }}
-<div class="image-miniature">
-    <a href="{{.Url}}" target="_blank">
-        <img src="{{.Url}}" alt="article-image" />
+<div class="image-miniature" data-imageid="{{.Name}}">
+    <a href="{{.Path}}" target="_blank">
+        <img src="{{.Path}}" alt="upload" />
     </a>
 
-    <button data-action="remove-image" data-imageid="{{.Id}}">Remove</button>
+    <label for="image-input-{{.Name}}">
+        Change
+        <input type="file" id="image-input-{{.Name}}" name="image-input" accept="image/*" hidden />
+    </label>
+
+    <button data-action="remove-image">Remove</button>
+
+    <input type="hidden" value="{{.Path}}" name="article_images" hidden />
 </div>
 {{ end }}

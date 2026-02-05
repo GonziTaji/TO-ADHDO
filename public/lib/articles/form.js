@@ -1,6 +1,9 @@
+import postWithProgress from '../utils/postWithProgress.js'
 import { getFirstChildCopyFromTemplate } from "../utils/teststs.js"
 
 document.addEventListener("DOMContentLoaded", init)
+
+const MAX_ARTICLE_IMAGES = 5
 
 function init() {
     bindEvents()
@@ -25,21 +28,15 @@ function bindEvents() {
         if (!input) return
 
         switch (input.name) {
-            case 'article_image':
-                const fd = new FormData()
-
-                if (!input.files || input.files.length == 0) {
-                    console.error(new Error('no file'))
+            case 'image_uploader':
+                if (!input.files && input.files.length === 0) {
                     return
                 }
 
-                fd.set('article_image', input.files[0])
+                uploadImage(input.files.item(0))
 
-                const r = await fetch('/api/uploads/articles_images', { method: 'POST' })
+                break
 
-                console.log(await r.text())
-
-                break;
         }
     })
 
@@ -80,44 +77,98 @@ function bindEvents() {
 }
 
 function bindDragAndDropEvents() {
-    document.addEventListener('dragenter', (e) => {
-        const subject = e.target.closest('[data-dragstatus]')
-        if (!subject) return
-        subject.dataset.dragstatus = e.type
-    })
-
-    document.addEventListener("drop", (e) => {
-        e.preventDefault()
-
-        const subject = e.target.closest('[data-dragstatus]')
-
-        if (!subject) return
-        subject.dataset.dragstatus = ""
-
-        if (subject.id === "article_image_dropzone") {
-            /** @type {HTMLInputElement} */
-            const file_input = document.querySelector('input[type="file"]#article_image')
-
-            if (!file_input) {
-                console.log(new Error('No input element found'))
-                return
-            }
-
-            file_input.files.ok
-        }
-
-    }, { capture: true })
-
     document.addEventListener('dragover', (e) => {
         e.preventDefault()
     })
 
     document.addEventListener('dragleave', (e) => {
-        const subject = e.target.closest('[data-dragstatus]')
-        if (!subject) return
-        subject.dataset.dragstatus = e.type
+        /** @type {HTMLElement} */
+        const subject = e.target;
+
+        if (subject.dataset.is_drag_over !== undefined && !subject.contains(e.fromElement)) {
+            subject.dataset.is_drag_over = ''
+        }
     })
 
+    document.addEventListener('dragenter', (e) => {
+        /** @type {HTMLElement} */
+        const subject = e.target.closest('[data-is_drag_over]');
+
+        if (subject) {
+            subject.dataset.is_drag_over = 'true'
+        }
+    })
+
+    document.addEventListener("drop", (e) => {
+        e.preventDefault()
+
+        document.querySelectorAll('[data-is_drag_over]').forEach((node) => {
+            node.dataset.is_drag_over = ''
+        })
+
+        /** @type {HTMLElement} */
+        const subject = e.target.closest('[data-is_drag_over]')
+
+        if (!subject) {
+            return
+        }
+
+        if (subject.dataset.dropzone_id === "article_images") {
+            const fd = new FormData(subject.form)
+
+            const current_images_count = fd.getAll('articles_images').length
+
+            const max_files_to_drop = MAX_ARTICLE_IMAGES - current_images_count
+
+            console.log(`max files to drop: ${max_files_to_drop}`)
+
+            if (max_files_to_drop === 0) {
+                console.log('max files reached')
+                return
+            }
+
+            [...e.dataTransfer.files]
+                .filter((file) => file.type.startsWith("image/"))
+                .splice(0, max_files_to_drop)
+                .map(x => {
+                    console.log(x)
+                    return x
+                })
+                .forEach(uploadImage)
+        }
+    })
+}
+
+/** @param {File} file */
+async function uploadImage(file) {
+    const template = document.getElementById('articles/form/image-miniature--loader')
+    const new_loading_block = getFirstChildCopyFromTemplate(template)
+
+    const url = URL.createObjectURL(file)
+
+    console.log('tmp url', url)
+    console.log('tmp file name', file.name)
+
+    new_loading_block.querySelector('a').href = url
+    new_loading_block.querySelector('img').src = url
+    new_loading_block.querySelector('img').alt = file.name
+
+    const images_grid = document.getElementById('images-grid')
+    images_grid.appendChild(new_loading_block)
+
+    console.log('images gridd')
+
+
+    const fd = new FormData()
+    fd.set('file', file)
+
+    const response = await postWithProgress('/articles/uploads', fd, (progress => {
+        new_loading_block.dataset.progress = progress
+    }))
+
+    new_loading_block.remove()
+
+    images_grid.innerHTML += response.body
 }
 
 /** @param {HTMLDialogElement} dialog */

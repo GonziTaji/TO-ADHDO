@@ -1,10 +1,15 @@
 package articles
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
@@ -277,4 +282,64 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusOK)
+}
+
+func (c *Controller) UploadImageHandler(ctx *gin.Context) {
+	subject := ctx.Param("subject")
+	file, err := ctx.FormFile("file")
+
+	if err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	folder_path := path.Join("public/uploads", subject)
+
+	err = mkdirIfNotExist(folder_path, 0644)
+
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Print("old file name!", file.Filename)
+
+	new_filename := uuid.NewString() + filepath.Ext(file.Filename)
+
+	log.Print("new file name!", new_filename)
+
+	file_path := path.Join(folder_path, new_filename)
+
+	log.Print("new file path!", file_path)
+
+	err = ctx.SaveUploadedFile(file, file_path)
+
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, err.Error())
+	}
+
+	ctx.HTML(http.StatusOK, "articles/form/image-miniature", gin.H{
+		"Name": new_filename,
+		"Path": "/" + file_path,
+	})
+}
+
+func mkdirIfNotExist(filepath string, perm os.FileMode) error {
+	info, err := os.Stat(filepath)
+
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+
+		mkdir_err := os.MkdirAll(filepath, perm)
+
+		if mkdir_err != nil {
+			return mkdir_err
+		}
+	} else if !info.IsDir() {
+		return errors.New("Subject exists but is not a dir")
+	}
+
+	return nil
 }
