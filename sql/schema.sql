@@ -11,9 +11,12 @@ CREATE TABLE if not exists articles (
 CREATE TABLE if not exists articles_images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     article_id INTEGER NOT NULL,
-    path TEXT NOT NULL,
+    path TEXT NOT NULL UNIQUE,
     created_at TEXT DEFAULT current_timestamp NOT NULL
 );
+
+CREATE UNIQUE INDEX article_id__image_path_idx
+ON articles_images (article_id, path);
 
 CREATE TABLE if not exists articles_prices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

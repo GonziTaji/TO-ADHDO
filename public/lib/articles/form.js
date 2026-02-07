@@ -33,10 +33,18 @@ function bindEvents() {
                     return
                 }
 
-                uploadImage(input.files.item(0))
+                const existing_image_row = input.closest('[data-imageid]')
+
+                if (existing_image_row) {
+                    existing_image_row.remove()
+                }
+
+                const files = [...input.files]
+                input.value = ""
+
+                files.forEach(uploadImage)
 
                 break
-
         }
     })
 
@@ -65,6 +73,7 @@ function bindEvents() {
             case 'add-tag':
                 addTag(tagid)
                 break
+
             case 'remove-tag':
                 removeTag(btn.closest('li'))
                 break
@@ -72,8 +81,22 @@ function bindEvents() {
             case 'remove-new-price':
                 removeNewPrice()
                 break
+
+            case 'remove-image':
+                removeImage(btn.closest('[data-imageid]'))
+                break
         }
     })
+}
+
+/** @param {HTMLElement} container */
+function removeImage(container) {
+    if (!container) {
+        console.error(new Error('no container to remove'))
+        return
+    }
+
+    container.remove()
 }
 
 function bindDragAndDropEvents() {
@@ -130,10 +153,6 @@ function bindDragAndDropEvents() {
             [...e.dataTransfer.files]
                 .filter((file) => file.type.startsWith("image/"))
                 .splice(0, max_files_to_drop)
-                .map(x => {
-                    console.log(x)
-                    return x
-                })
                 .forEach(uploadImage)
         }
     })
@@ -141,40 +160,33 @@ function bindDragAndDropEvents() {
 
 /** @param {File} file */
 async function uploadImage(file) {
-    const template = document.getElementById('articles/form/image-miniature')
-    const miniature_block = getFirstChildCopyFromTemplate(template)
+    const template = document.getElementById('articles/form/image-miniature--loader')
+    const image_loader = getFirstChildCopyFromTemplate(template)
 
     const url = URL.createObjectURL(file)
-    const aux = file.name.split('.')
-    const ext = aux.pop()
-    const id = `local-${aux.join('')}-${Date.now()}.${ext}`
 
-
-    console.log('tmp url', url)
-    console.log('tmp file name', file.name)
-    console.log('tmp id ', id)
-
-    miniature_block.dataset.imageid = id
-
-    miniature_block.querySelector('a').href = url
-    miniature_block.querySelector('img').src = url
-    miniature_block.querySelector('label').htmlFor += id
-    miniature_block.querySelector('input').id += id
-    miniature_block.querySelector('input').value = url
+    image_loader.querySelector('img[src=""]').src = url
 
     const images_grid = document.getElementById('images-grid')
-    images_grid.appendChild(miniature_block)
+    images_grid.appendChild(image_loader)
 
-    // const fd = new FormData()
-    // fd.set('file', file)
-    //
-    // const response = await postWithProgress('/articles/uploads', fd, (progress => {
-    //     miniature_block.dataset.progress = progress
-    // }))
-    //
-    // miniature_block.remove()
-    //
-    // images_grid.innerHTML += response.body
+    const fd = new FormData()
+    fd.set('file', file)
+
+    const response = await postWithProgress('/articles/uploads', fd, (progress => {
+        image_loader.dataset.progress = progress
+    }))
+
+    console.log('removing url', url)
+    image_loader.remove()
+
+    URL.revokeObjectURL(url)
+
+    const tmp = document.createElement('div')
+
+    images_grid.appendChild(tmp)
+
+    tmp.outerHTML = response.body
 }
 
 /** @param {HTMLDialogElement} dialog */

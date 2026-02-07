@@ -43,6 +43,8 @@ type ArticleFormData struct {
 	TagIds              []string `form:"tags_ids"`
 	NewPrice            int      `form:"new_price"`
 	NewPriceDescription string   `form:"new_price_description"`
+	ArticleImagePaths   []string `form:"article_images_paths"`
+	ArticleImageIds     []string `form:"article_images_ids"`
 }
 
 type CreateArticleResponse struct {
@@ -205,9 +207,11 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 		Name:        form.Name,
 		Description: form.Description,
 		Tags:        []tags.Tag{},
+		Images:      []ArticleImage{},
 	}
 
 	// should this be in a "service" layer?
+	// Same logic as in the UpdateHandler
 	for i, name := range form.TagNames {
 		tag := tags.Tag{
 			Id:   form.TagIds[i],
@@ -215,6 +219,15 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 		}
 
 		new_article.Tags = append(new_article.Tags, tag)
+	}
+
+	for i, id := range form.ArticleImageIds {
+		image := ArticleImage{
+			Id:   id,
+			Path: form.ArticleImagePaths[i],
+		}
+
+		new_article.Images = append(new_article.Images, image)
 	}
 
 	if form.NewPrice != 0 {
@@ -253,6 +266,7 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 	}
 
 	// should this be in a "service" layer?
+	// Same logic as in the CreateHandler
 	for i, name := range form.TagNames {
 		tag := tags.Tag{
 			Id:   form.TagIds[i],
@@ -260,6 +274,15 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 		}
 
 		new_article.Tags = append(new_article.Tags, tag)
+	}
+
+	for i, id := range form.ArticleImageIds {
+		image := ArticleImage{
+			Id:   id,
+			Path: form.ArticleImagePaths[i],
+		}
+
+		new_article.Images = append(new_article.Images, image)
 	}
 
 	if form.NewPrice != 0 {
@@ -293,7 +316,7 @@ func (c *Controller) UploadImageHandler(ctx *gin.Context) {
 		return
 	}
 
-	folder_path := path.Join("public/uploads", subject)
+	folder_path := path.Join("public/media/uploads", subject)
 
 	err = mkdirIfNotExist(folder_path, 0644)
 
@@ -302,16 +325,8 @@ func (c *Controller) UploadImageHandler(ctx *gin.Context) {
 		return
 	}
 
-	log.Print("old file name!", file.Filename)
-
 	new_filename := uuid.NewString() + filepath.Ext(file.Filename)
-
-	log.Print("new file name!", new_filename)
-
 	file_path := path.Join(folder_path, new_filename)
-
-	log.Print("new file path!", file_path)
-
 	err = ctx.SaveUploadedFile(file, file_path)
 
 	if err != nil {
@@ -319,8 +334,9 @@ func (c *Controller) UploadImageHandler(ctx *gin.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, "articles/form/image-miniature", gin.H{
-		"Name": new_filename,
-		"Path": "/" + file_path,
+		"Id":    "", // "new-" + new_filename,
+		"Path":  "/" + file_path,
+		"IsNew": true,
 	})
 }
 

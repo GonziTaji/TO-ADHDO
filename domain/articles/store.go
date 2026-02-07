@@ -352,6 +352,13 @@ func (s *Store) Create(article *Article) (string, error) {
 		return "", err
 	}
 
+	if len(article.Images) > 0 {
+		if err := persistArticleImages(tx, article); err != nil {
+			tx.Rollback()
+			return "", err
+		}
+	}
+
 	if err = tx.Commit(); err != nil {
 		log.Printf("error commiting transaction: %s\n", err.Error())
 		tx.Rollback()
@@ -482,7 +489,6 @@ func (s *Store) Update(article *Article) error {
 						updated_at = current_timestamp,
 						deleted_at = current_timestamp
 					WHERE article_id = ?
-					AND tag_id = ?
 					and deleted_at IS NULL;
 					`,
 				article.Id, tag_id,
@@ -500,6 +506,11 @@ func (s *Store) Update(article *Article) error {
 
 	if err := createArticleTags(tx, article.Id, tags_ids_for_new_relationships); err != nil {
 		log.Printf("could not create articles_tags of new tags for article id %s: %s\n", article.Id, err.Error())
+		tx.Rollback()
+		return err
+	}
+
+	if err := persistArticleImages(tx, article); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -690,6 +701,123 @@ func createPrices(tx *sql.Tx, article Article) error {
 
 	if err != nil {
 		log.Printf("error creating prices: %s\n", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func persistArticleImages(tx *sql.Tx, article *Article) error {
+	if len(article.Images) == 0 {
+		_, err := tx.Exec("DELETE FROM articles_images WHERE article_id = ?;", article.Id)
+
+		return err
+	}
+
+	paths_qargs := QueryArgs{}
+	paths_qargs_tmpls := []string{}
+
+	for _, img := range article.Images {
+		paths_qargs = append(paths_qargs, img.Path)
+		paths_qargs_tmpls = append(paths_qargs_tmpls, "?")
+	}
+
+	check_new_images_query := fmt.Sprintf(`
+		WITH input_paths(path) AS (
+			SELECT %s
+		)
+		SELECT path
+		FROM input_paths
+		WHERE path NOT IN (
+			SELECT path FROM articles_images WHERE article_id = 17
+		);
+	`, strings.Join(paths_qargs_tmpls, " UNION ALL SELECT "))
+
+	log.Print(check_new_images_query + "\n")
+
+	rows, err := tx.Query(
+		check_new_images_query,
+		append(paths_qargs, article.Id)...,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	inserted_count := 0
+
+	for rows.Next() {
+		path := ""
+
+		if err := rows.Scan(&path); err != nil {
+			return err
+		}
+
+		res, err := tx.Exec(
+			"INSERT INTO articles_images (article_id, path) VALUES (?, ?)",
+			article.Id, path,
+		)
+
+		if err != nil {
+			return nil
+		}
+
+		count, _ := res.RowsAffected()
+
+		if count != 1 {
+			return fmt.Errorf("Article image of path %s could not be inserted", path)
+		}
+
+		inserted_count++
+	}
+
+	if err := rows.Close(); err != nil {
+		return err
+	}
+
+	if inserted_count == len(article.Images) {
+		// Every image has already been processed
+		return nil
+	}
+
+	check_missing_images_query := fmt.Sprintf(`
+		SELECT id FROM articles_images
+		WHERE article_id = ?
+		AND path NOT IN (%s);
+	`, strings.Join(paths_qargs_tmpls, ","))
+
+	log.Print(check_missing_images_query + "\n")
+
+	rows, err = tx.Query(
+		check_missing_images_query,
+		slices.Concat(QueryArgs{article.Id}, paths_qargs)...,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		id := ""
+
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+
+		res, err := tx.Exec("DELETE FROM articles_images WHERE id = ?", id)
+
+		if err != nil {
+			return nil
+		}
+
+		count, _ := res.RowsAffected()
+
+		if count != 1 {
+			return fmt.Errorf("Article image of id %s could not be deleted", id)
+		}
+	}
+
+	if err := rows.Close(); err != nil {
 		return err
 	}
 
