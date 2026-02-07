@@ -1,1 +1,2 @@
-public/media/uploads/*
+# until uploads and the database that references them are saved in sqlite, we must commit the uploads 
+# public/media/uploads/*

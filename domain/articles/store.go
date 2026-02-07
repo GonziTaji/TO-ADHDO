@@ -709,6 +709,7 @@ func createPrices(tx *sql.Tx, article Article) error {
 
 func persistArticleImages(tx *sql.Tx, article *Article) error {
 	if len(article.Images) == 0 {
+		// TODO: delete image file
 		_, err := tx.Exec("DELETE FROM articles_images WHERE article_id = ?;", article.Id)
 
 		return err
@@ -804,6 +805,7 @@ func persistArticleImages(tx *sql.Tx, article *Article) error {
 			return err
 		}
 
+		// TODO: delete image file
 		res, err := tx.Exec("DELETE FROM articles_images WHERE id = ?", id)
 
 		if err != nil {
