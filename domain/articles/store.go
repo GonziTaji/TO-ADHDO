@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/yogusita/to-adhdo/domain/tags"
+	"github.com/yogusita/to-adhdo/domain/uploads"
 )
 
 type QueryArgs []any
@@ -216,8 +217,6 @@ func (s *Store) Get(article_id string) (Article, error) {
 			return article, err
 		}
 
-		log.Printf("in if. scanned tag: %s %s %v\n", tag.Id, tag.Name, tag.DeletedAt)
-
 		if tag.Id != "" {
 			article.Tags = append(article.Tags, tag)
 		}
@@ -251,7 +250,6 @@ func (s *Store) Get(article_id string) (Article, error) {
 			return article, err
 		}
 
-		log.Printf("appending price to article's prices: %v", price)
 		article.Prices = append(article.Prices, price)
 	}
 
@@ -260,7 +258,7 @@ func (s *Store) Get(article_id string) (Article, error) {
 	}
 
 	images_rows, err := s.db.Query(`
-		SELECT id, article_id, path, created_at
+		SELECT id, article_id, filename, created_at
 		FROM articles_images
 		WHERE article_id = ?
 		ORDER BY created_at DESC;
@@ -276,13 +274,14 @@ func (s *Store) Get(article_id string) (Article, error) {
 		if err := images_rows.Scan(
 			&image.Id,
 			&image.ArticleId,
-			&image.Path,
+			&image.Filename,
 			&image.CreatedAt,
 		); err != nil {
 			return article, err
 		}
 
-		log.Printf("appending price to article's prices: %v", image)
+		image.Url = uploads.GetFilePublicUrl(articles_images_bucket, image.Filename)
+
 		article.Images = append(article.Images, image)
 	}
 
@@ -294,8 +293,6 @@ func (s *Store) Get(article_id string) (Article, error) {
 }
 
 func (s *Store) Create(article *Article) (string, error) {
-	log.Printf("creating article: %v\n", article)
-
 	tx, err := s.db.Begin()
 
 	if err != nil {
@@ -352,11 +349,9 @@ func (s *Store) Create(article *Article) (string, error) {
 		return "", err
 	}
 
-	if len(article.Images) > 0 {
-		if err := persistArticleImages(tx, article); err != nil {
-			tx.Rollback()
-			return "", err
-		}
+	if err := persistArticleImages(tx, article); err != nil {
+		tx.Rollback()
+		return "", err
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -374,9 +369,6 @@ func (s *Store) Create(article *Article) (string, error) {
 //
 // Tags without id are treated like new tags. They are created and then related to the article
 func (s *Store) Update(article *Article) error {
-	log.Println("")
-	log.Printf(">> updating article: %v\n\n", article)
-
 	tx, err := s.db.Begin()
 
 	if err != nil {
@@ -419,11 +411,7 @@ func (s *Store) Update(article *Article) error {
 		}
 	}
 
-	log.Printf("creating the following tags: %s\n", new_tags_names)
-
 	tags_ids_for_new_relationships, err := createTags(tx, new_tags_names)
-
-	log.Printf("tags_ids_for_new_relationships: %s\n", tags_ids_for_new_relationships)
 
 	if err != nil {
 		log.Printf("error creating new tags for article: %s\n", err.Error())
@@ -466,22 +454,13 @@ func (s *Store) Update(article *Article) error {
 		return err
 	}
 
-	for id := range tags_ids_in_relationships {
-		log.Printf("	> tag in relationship id: %s\n", id)
-	}
-
 	for _, tag_id := range input_tags_ids {
 		if tags_ids_in_relationships[tag_id] == "" {
-			log.Printf("	>	> adding id %s to tags_ids_for_new_relationships\n", tag_id)
 			tags_ids_for_new_relationships = append(tags_ids_for_new_relationships, tag_id)
 		}
 	}
 
-	log.Printf("tags_ids_for_new_relationships: %s\n", tags_ids_for_new_relationships)
-
 	for _, tag_id := range tags_ids_in_relationships {
-		log.Printf("input_tags_ids[tag_id_in_relationship]: %s\n", tags_ids_in_relationships[tag_id])
-
 		if input_tags_ids[tag_id] == "" {
 			_, err := tx.Exec(`
 					UPDATE articles_tags
@@ -501,8 +480,6 @@ func (s *Store) Update(article *Article) error {
 			}
 		}
 	}
-
-	log.Printf("tags_ids_for_new_relationships: %v\n", tags_ids_for_new_relationships)
 
 	if err := createArticleTags(tx, article.Id, tags_ids_for_new_relationships); err != nil {
 		log.Printf("could not create articles_tags of new tags for article id %s: %s\n", article.Id, err.Error())
@@ -628,8 +605,6 @@ func createTags(tx *sql.Tx, tags_names []string) ([]string, error) {
 }
 
 func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
-	log.Printf("tags_ids: %v", tags_ids)
-
 	if len(tags_ids) == 0 {
 		return nil
 	}
@@ -650,9 +625,6 @@ func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
 			query_sb.WriteString(" (?, ?);")
 		}
 	}
-
-	log.Printf("query: %s", query_sb.String())
-	log.Printf("args: %v", query_args)
 
 	res, err := tx.Exec(query_sb.String(), query_args...)
 
@@ -694,9 +666,6 @@ func createPrices(tx *sql.Tx, article Article) error {
 
 	query_sb.WriteString(";")
 
-	log.Printf("query: %s\n", query_sb.String())
-	log.Printf("queryargs: %v\n", query_args)
-
 	_, err := tx.Exec(query_sb.String(), query_args...)
 
 	if err != nil {
@@ -709,36 +678,53 @@ func createPrices(tx *sql.Tx, article Article) error {
 
 func persistArticleImages(tx *sql.Tx, article *Article) error {
 	if len(article.Images) == 0 {
-		// TODO: delete image file
-		_, err := tx.Exec("DELETE FROM articles_images WHERE article_id = ?;", article.Id)
+		rows, err := tx.Query("SELECT filename FROM articles_images WHERE article_id = ?;", article.Id)
+
+		for rows.Next() {
+			var filename string
+
+			if err := rows.Scan(&filename); err != nil {
+				return err
+			}
+
+			if err := uploads.DeleteFile(articles_images_bucket, filename); err != nil {
+				return err
+			}
+		}
+
+		if err := rows.Close(); err != nil {
+			return err
+		}
+
+		_, err = tx.Exec("DELETE FROM articles_images WHERE article_id = ?;", article.Id)
 
 		return err
 	}
 
-	paths_qargs := QueryArgs{}
-	paths_qargs_tmpls := []string{}
+	filenames_qargs := QueryArgs{}
+	filenames_qargs_tmpls := []string{}
 
 	for _, img := range article.Images {
-		paths_qargs = append(paths_qargs, img.Path)
-		paths_qargs_tmpls = append(paths_qargs_tmpls, "?")
+		filenames_qargs = append(filenames_qargs, img.Filename)
+		filenames_qargs_tmpls = append(filenames_qargs_tmpls, "?")
 	}
 
 	check_new_images_query := fmt.Sprintf(`
-		WITH input_paths(path) AS (
+		WITH input_filenames(name) AS (
 			SELECT %s
 		)
-		SELECT path
-		FROM input_paths
-		WHERE path NOT IN (
-			SELECT path FROM articles_images WHERE article_id = 17
+		SELECT name
+		FROM input_filenames
+		WHERE name NOT IN (
+			SELECT filename FROM articles_images WHERE article_id = ?
 		);
-	`, strings.Join(paths_qargs_tmpls, " UNION ALL SELECT "))
+	`, strings.Join(filenames_qargs_tmpls, " UNION ALL SELECT "))
 
 	log.Print(check_new_images_query + "\n")
 
 	rows, err := tx.Query(
 		check_new_images_query,
-		append(paths_qargs, article.Id)...,
+		append(filenames_qargs, article.Id)...,
 	)
 
 	if err != nil {
@@ -748,25 +734,25 @@ func persistArticleImages(tx *sql.Tx, article *Article) error {
 	inserted_count := 0
 
 	for rows.Next() {
-		path := ""
+		filename := ""
 
-		if err := rows.Scan(&path); err != nil {
+		if err := rows.Scan(&filename); err != nil {
 			return err
 		}
 
 		res, err := tx.Exec(
-			"INSERT INTO articles_images (article_id, path) VALUES (?, ?)",
-			article.Id, path,
+			"INSERT INTO articles_images (article_id, filename) VALUES (?, ?)",
+			article.Id, filename,
 		)
 
 		if err != nil {
-			return nil
+			return err
 		}
 
 		count, _ := res.RowsAffected()
 
 		if count != 1 {
-			return fmt.Errorf("Article image of path %s could not be inserted", path)
+			return fmt.Errorf("Article image \"%s\" could not be inserted", filename)
 		}
 
 		inserted_count++
@@ -782,16 +768,17 @@ func persistArticleImages(tx *sql.Tx, article *Article) error {
 	}
 
 	check_missing_images_query := fmt.Sprintf(`
-		SELECT id FROM articles_images
+		SELECT id, filename
+		FROM articles_images
 		WHERE article_id = ?
-		AND path NOT IN (%s);
-	`, strings.Join(paths_qargs_tmpls, ","))
+		AND filename NOT IN (%s);
+	`, strings.Join(filenames_qargs_tmpls, ","))
 
 	log.Print(check_missing_images_query + "\n")
 
 	rows, err = tx.Query(
 		check_missing_images_query,
-		slices.Concat(QueryArgs{article.Id}, paths_qargs)...,
+		slices.Concat(QueryArgs{article.Id}, filenames_qargs)...,
 	)
 
 	if err != nil {
@@ -800,22 +787,26 @@ func persistArticleImages(tx *sql.Tx, article *Article) error {
 
 	for rows.Next() {
 		id := ""
+		filename := ""
 
-		if err := rows.Scan(&id); err != nil {
+		if err := rows.Scan(&id, &filename); err != nil {
 			return err
 		}
 
-		// TODO: delete image file
 		res, err := tx.Exec("DELETE FROM articles_images WHERE id = ?", id)
 
 		if err != nil {
-			return nil
+			return err
 		}
 
 		count, _ := res.RowsAffected()
 
 		if count != 1 {
 			return fmt.Errorf("Article image of id %s could not be deleted", id)
+		}
+
+		if err := uploads.DeleteFile(articles_images_bucket, filename); err != nil {
+			return err
 		}
 	}
 

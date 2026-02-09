@@ -153,6 +153,31 @@
         </form>
     </dialog>
 
+    <dialog id="error-dialog">
+        <div>
+            <span id="error-dialog_title"></span>
+            <br />
+            <span id="error-dialog_content"></span>
+        </div>
+
+        <button type="button" command="close" commandfor="error-dialog">
+            Ok
+        </button>
+    </dialog>
+
+    <dialog id="success-dialog">
+        <div>
+            <span>Success!</span>
+            <br />
+            <span>
+                The article was created successfully.
+                <a id="success-dialog_article_link" href="">View</a>
+            </span>
+            <br />
+            <a href="/articles">Back to list</button>
+        </div>
+    </dialog>
+
     <style>
         @property --progress {
             syntax: "<percentage>";
@@ -371,20 +396,20 @@
 
 {{ define "articles/form/image-miniature" }}
 <div class="image-miniature" data-imageid="{{.Id}}">
-    <a class="image-link" href="{{.Path}}" target="_blank">
-        <img src="{{.Path}}" alt="miniature" />
+    <a class="image-link" href="{{.Url}}" target="_blank">
+        <img src="{{.Url}}" alt="miniature" />
     </a>
 
     <div class="image-controls">
-        <label for="image-input-{{.Path}}">
+        <label for="image-input-{{.Filename}}">
             Change
-            <input type="file" id="image-input-{{.Path}}" name="image_uploader" accept="image/*" hidden />
+            <input type="file" id="image-input-{{.Filename}}" name="image_uploader" accept="image/*" hidden />
         </label>
 
         <button data-action="remove-image">Remove</button>
     </div>
 
     <input type="hidden" name="article_images_ids" value="{{if .Id}} {{.Id}} {{end}}" />
-    <input type="hidden" name="article_images_paths" value={{.Path}} />
+    <input type="hidden" name="article_images_filenames" value={{.Filename}} />
 </div>
 {{ end }}

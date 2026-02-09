@@ -1,9 +1,17 @@
 /**
+ * @typedef {Object} UploadResponse
+ * @property {boolean} ok
+ * @property {number} status
+ * @property {string} statusText
+ * @property {string} body
+ */
+
+/**
  * @param {string} url
  * @param {XMLHttpRequestBodyInit} body
  * @param {(percentage: number) => void} onProgress
  *
- * @returns {Promise<{ ok: boolean, status: number, statusText: string, body: string }>}
+ * @returns {Promise<UploadResponse>}
  */
 export default function postWithProgress(url, body, onProgress) {
     return new Promise((resolve, reject) => {
@@ -15,7 +23,6 @@ export default function postWithProgress(url, body, onProgress) {
         xhr.upload.addEventListener('progress', (event) => {
             if (event.lengthComputable) {
                 const new_progress = Math.floor((event.loaded / event.total) * 100);
-                console.log(`Upload progress: ${new_progress}%`);
 
                 if (new_progress > prev_progress) {
                     prev_progress = new_progress
@@ -25,17 +32,13 @@ export default function postWithProgress(url, body, onProgress) {
         });
 
         xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 500) {
-                resolve({
-                    ok: xhr.status == 200,
-                    status: xhr.status,
-                    statusText: xhr.status,
-                    body: xhr.response
-                });
-            } else {
-                reject(new Error(xhr.statusText));
-            }
-        });
+            resolve({
+                ok: xhr.status >= 200 && xhr.status < 300,
+                status: xhr.status,
+                statusText: xhr.statusText,
+                body: xhr.response,
+            })
+        })
 
         xhr.addEventListener('error', () => reject(new Error('Network error')));
 

@@ -29,6 +29,7 @@ type ArticlePrice struct {
 type ArticleImage struct {
 	Id        string
 	ArticleId string
-	Path      string
+	Filename  string
+	Url       string
 	CreatedAt string
 }

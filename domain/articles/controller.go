@@ -1,17 +1,15 @@
 package articles
 
 import (
-	"errors"
-	"log"
 	"net/http"
-	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/yogusita/to-adhdo/domain/tags"
+	"github.com/yogusita/to-adhdo/domain/uploads"
 )
+
+const articles_images_bucket = "articles_images"
 
 type TagOption struct {
 	Id       string
@@ -36,15 +34,15 @@ type ListingArticlesOptions struct {
 }
 
 type ArticleFormData struct {
-	Id                  string   `form:"id"`
-	Name                string   `form:"name" binding:"required"`
-	Description         string   `form:"description"`
-	TagNames            []string `form:"tags_names"`
-	TagIds              []string `form:"tags_ids"`
-	NewPrice            int      `form:"new_price"`
-	NewPriceDescription string   `form:"new_price_description"`
-	ArticleImagePaths   []string `form:"article_images_paths"`
-	ArticleImageIds     []string `form:"article_images_ids"`
+	Id                    string   `form:"id"`
+	Name                  string   `form:"name" binding:"required"`
+	Description           string   `form:"description"`
+	TagNames              []string `form:"tags_names"`
+	TagIds                []string `form:"tags_ids"`
+	NewPrice              int      `form:"new_price"`
+	NewPriceDescription   string   `form:"new_price_description"`
+	ArticleImageFilenames []string `form:"article_images_filenames"`
+	ArticleImageIds       []string `form:"article_images_ids"`
 }
 
 type CreateArticleResponse struct {
@@ -151,8 +149,6 @@ func (c *Controller) GetCatalogHandler(ctx *gin.Context) {
 
 	articles, err := c.store.List(&options)
 
-	log.Printf("articles in list: %v", articles)
-
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		return
@@ -170,8 +166,6 @@ func (c *Controller) GetListHandler(ctx *gin.Context) {
 	}
 
 	articles, err := c.store.List(&options)
-
-	log.Printf("articles in list: %v", articles)
 
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
@@ -203,7 +197,7 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 		return
 	}
 
-	new_article := Article{
+	article := Article{
 		Name:        form.Name,
 		Description: form.Description,
 		Tags:        []tags.Tag{},
@@ -218,36 +212,34 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 			Name: name,
 		}
 
-		new_article.Tags = append(new_article.Tags, tag)
+		article.Tags = append(article.Tags, tag)
 	}
 
 	for i, id := range form.ArticleImageIds {
 		image := ArticleImage{
-			Id:   id,
-			Path: form.ArticleImagePaths[i],
+			Id:       id,
+			Filename: form.ArticleImageFilenames[i],
 		}
 
-		new_article.Images = append(new_article.Images, image)
+		article.Images = append(article.Images, image)
 	}
 
 	if form.NewPrice != 0 {
-		log.Printf(">	>	>	NEW PRICE: %d\n", form.NewPrice)
-		new_article.Prices = append(new_article.Prices, ArticlePrice{
+		article.Prices = append(article.Prices, ArticlePrice{
 			Price:       form.NewPrice,
 			Description: form.NewPriceDescription,
 		})
-	} else {
-		log.Println(">	>	>	NO NEW PRICE")
 	}
 
-	article_id, err := c.store.Create(&new_article)
+	article_id, err := c.store.Create(&article)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"id": article_id})
+	ctx.Header("Location", "/articles/"+article_id)
+	ctx.Status(http.StatusCreated)
 }
 
 func (c *Controller) UpdateHandler(ctx *gin.Context) {
@@ -258,7 +250,7 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 		return
 	}
 
-	new_article := Article{
+	article := Article{
 		Id:          form.Id,
 		Name:        form.Name,
 		Description: form.Description,
@@ -273,89 +265,63 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 			Name: name,
 		}
 
-		new_article.Tags = append(new_article.Tags, tag)
+		article.Tags = append(article.Tags, tag)
 	}
 
 	for i, id := range form.ArticleImageIds {
 		image := ArticleImage{
-			Id:   id,
-			Path: form.ArticleImagePaths[i],
+			Id:       id,
+			Filename: form.ArticleImageFilenames[i],
 		}
 
-		new_article.Images = append(new_article.Images, image)
+		article.Images = append(article.Images, image)
 	}
 
 	if form.NewPrice != 0 {
-		log.Printf(">	>	>	NEW PRICE: %d\n", form.NewPrice)
-		new_article.Prices = append(new_article.Prices, ArticlePrice{
+		article.Prices = append(article.Prices, ArticlePrice{
 			Price:       form.NewPrice,
 			Description: form.NewPriceDescription,
 		})
-	} else {
-		log.Println(">	>	>	NO NEW PRICE")
 	}
 
-	log.Printf("final tags: %v", new_article.Tags)
-
-	err := c.store.Update(&new_article)
+	err := c.store.Update(&article)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	ctx.Header("Location", "/articles/"+article.Id)
 	ctx.Status(http.StatusOK)
 }
 
 func (c *Controller) UploadImageHandler(ctx *gin.Context) {
-	subject := ctx.Param("subject")
-	file, err := ctx.FormFile("file")
+	fileheader, err := ctx.FormFile("file")
+
+	file, err := fileheader.Open()
 
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	folder_path := path.Join("public/media/uploads", subject)
+	file_ext := filepath.Ext(fileheader.Filename)
 
-	err = mkdirIfNotExist(folder_path, 0644)
+	saved_filename, err := uploads.SaveFile(articles_images_bucket, file_ext, file)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	new_filename := uuid.NewString() + filepath.Ext(file.Filename)
-	file_path := path.Join(folder_path, new_filename)
-	err = ctx.SaveUploadedFile(file, file_path)
-
-	if err != nil {
+	if err := file.Close(); err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	ctx.HTML(http.StatusOK, "articles/form/image-miniature", gin.H{
-		"Id":    "", // "new-" + new_filename,
-		"Path":  "/" + file_path,
-		"IsNew": true,
+	ctx.HTML(http.StatusOK, "articles/form/image-miniature", ArticleImage{
+		Id:       "",
+		Filename: saved_filename,
+		Url:      uploads.GetFilePublicUrl(articles_images_bucket, saved_filename),
 	})
-}
-
-func mkdirIfNotExist(filepath string, perm os.FileMode) error {
-	info, err := os.Stat(filepath)
-
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-
-		mkdir_err := os.MkdirAll(filepath, perm)
-
-		if mkdir_err != nil {
-			return mkdir_err
-		}
-	} else if !info.IsDir() {
-		return errors.New("Subject exists but is not a dir")
-	}
-
-	return nil
 }

@@ -71,6 +71,7 @@ func newRouter(db *sql.DB) *gin.Engine {
 	return router
 }
 
+// TODO: most of this is not longer required. review and rewrite this func
 func getTemplatePaths() []string {
 	// Layouts need to be loaded first to define their blocks before the rest of the templates define them
 	var layouts_templates_paths []string

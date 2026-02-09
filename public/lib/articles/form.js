@@ -158,6 +158,36 @@ function bindDragAndDropEvents() {
     })
 }
 
+/**
+ * @param {string} title
+ * @param {string} content
+ */
+function showErrorModal(title, content) {
+    const fallback = (/** @type {string} */ el_name) => {
+        console.error(new Error(`Error: "${el_name}" element could not be found`))
+        alert(`${title}. ${content}`)
+    }
+
+    /** @type {HTMLDialogElement | null} */
+    const dialog = document.querySelector('dialog#error-dialog')
+
+    if (!dialog) {
+        return fallback('dialog')
+    }
+
+    const title_el = dialog.querySelector('#error-dialog_title')
+    const content_el = dialog.querySelector('#error-dialog_content')
+
+    if (!title_el || !content_el) {
+        return fallback("title or content")
+    }
+
+    title_el.innerText = title
+    content_el.innerText = content
+
+    dialog.showModal()
+}
+
 /** @param {File} file */
 async function uploadImage(file) {
     const template = document.getElementById('articles/form/image-miniature--loader')
@@ -173,20 +203,33 @@ async function uploadImage(file) {
     const fd = new FormData()
     fd.set('file', file)
 
-    const response = await postWithProgress('/articles/uploads', fd, (progress => {
-        image_loader.dataset.progress = progress
-    }))
+    const error_title = 'Error uploading image'
 
-    console.log('removing url', url)
-    image_loader.remove()
+    try {
+        const response = await postWithProgress('/articles/uploads', fd, (progress => {
+            image_loader.dataset.progress = progress
+        }))
 
-    URL.revokeObjectURL(url)
+        if (!response.ok) {
+            console.log(response)
+            showErrorModal(error_title, `${response.statusText}: ${response.body}`)
+            return
+        }
 
-    const tmp = document.createElement('div')
+        URL.revokeObjectURL(url)
 
-    images_grid.appendChild(tmp)
+        const dest = document.createElement('div')
 
-    tmp.outerHTML = response.body
+        images_grid.appendChild(dest)
+
+        dest.outerHTML = response.body
+    } catch (e) {
+        console.log(e)
+        showErrorModal(error_title, `Unexpected error: ${e.message || e}`)
+    } finally {
+        image_loader.remove()
+    }
+
 }
 
 /** @param {HTMLDialogElement} dialog */
@@ -326,26 +369,38 @@ async function formSubmitHandler(ev) {
     ev.preventDefault()
 
     const body = new FormData(ev.currentTarget)
-
-    let endpoint = "/articles"
-
     const article_id = body.get("id")
 
-    let method = "POST"
+    let method = 'POST'
+    let endpoint = "/articles"
 
     if (article_id != "") {
+        method = 'PUT'
         endpoint += "/" + article_id
-        method = "PUT"
     }
 
     const response = await fetch(endpoint, { method, body })
 
     if (!response.ok) {
-        alert('Uh oh! ewrorw:' + await response.text())
+        showErrorModal('Uh oh! ewrorw', await response.text())
         return
     }
 
-    console.log(await response.text())
+    /** @type {HTMLDialogElement | null} */
+    const dialog = document.querySelector('dialog#success-dialog')
+    /** @type {HTMLAnchorElement | null} */
+    const anchor = dialog?.querySelector('a#success-dialog_article_link')
+
+    if (!dialog || !anchor) {
+        console.warn('dialog or anchor of the dialog not found in the DOM. using fallback')
+        alert('Success!')
+        location.href = response.headers.get('location')
+        return
+    }
+
+    anchor.href = response.headers.get('location')
+
+    dialog.showModal()
 }
 
 /** @param {KeyboardEvent} ev */
@@ -367,7 +422,7 @@ function tagSearchKeyDownHandler(ev) {
 
 /** 
  * @param {string} tag_id
- * @returns {HTMLOptionElement
+ * @returns {HTMLOptionElement}
  */
 function getTagOptionById(tag_id) {
     const option = document.querySelector(
