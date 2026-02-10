@@ -72,41 +72,9 @@ func (s *Store) List(options ListingTagsOptions) ([]TagItemList, error) {
 	}
 
 	if err := rows.Close(); err != nil {
+		log.Printf("could not close rows: %s\n", err.Error())
 		return nil, err
 	}
 
 	return list, nil
 }
-
-var s = `
-	SELECT t.id, t.name, t.created_at, t.updated_at, t.deleted_at, COUNT(at.article_id)
-	FROM tags t
-	JOIN articles_tags at
-		ON t.id = at.tag_id
-		AND at.deleted_at IS NULL
-	WHERE t.deleted_at IS NULL
-	GROUP BY t.id, t.name, t.created_at, t.updated_at, t.deleted_at
-	ORDER BY t.updated_at DESC
-	LIMIT 100 OFFSET 0;
-`
-
-var s3 = `
-	SELECT t.id, t.name, t.created_at, t.updated_at, t.deleted_at, at.article_id
-	FROM tags t
-	JOIN articles_tags at
-		ON t.id = at.tag_id
-		AND at.deleted_at IS NULL
-	WHERE t.deleted_at IS NULL
-	-- GROUP BY t.id, t.name, t.created_at, t.updated_at, t.deleted_at
-	ORDER BY t.updated_at DESC
-	LIMIT 100 OFFSET 0;
-`
-
-var s2 = `
-	SELECT t.id, t.name, t.created_at, t.updated_at, t.deleted_at, COUNT(at.article_id)
-	FROM tags t
-	JOIN articles_tags at
-		ON t.id = at.tag_id
-		AND at.deleted_at IS NULL
-	WHERE t.deleted_at IS NULL;
-`

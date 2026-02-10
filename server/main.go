@@ -2,7 +2,6 @@ package server
 
 import (
 	"database/sql"
-	"html/template"
 	"io/fs"
 	"log"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 	"github.com/yogusita/to-adhdo/domain/articles"
 	"github.com/yogusita/to-adhdo/domain/tags"
 	"github.com/yogusita/to-adhdo/env"
+	"github.com/yogusita/to-adhdo/server/funcmap"
 	_ "modernc.org/sqlite"
 )
 
@@ -53,9 +53,7 @@ func newRouter(db *sql.DB) *gin.Engine {
 
 	router.Use(setupSecurityHeaders)
 
-	router.SetFuncMap(template.FuncMap{
-		"dict": dictFuncMap,
-	})
+	router.SetFuncMap(funcmap.GetFuncMap())
 
 	registerStaticRoutes(router)
 

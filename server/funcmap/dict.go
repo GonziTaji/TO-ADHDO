@@ -1,11 +1,11 @@
-package server
+package funcmap
 
 // Usage:
 //
 // To pass the dictionary { form: .formValues, tags: .tags } to a template block, you do:
 //
 // {{ template "myBlock" (dict "form" .formValues "tags" .tags) }}
-func dictFuncMap(values ...any) map[string]any {
+func dict(values ...any) map[string]any {
 	if len(values)%2 != 0 {
 		panic("dict requires even number of arguments")
 	}

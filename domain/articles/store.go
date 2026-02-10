@@ -29,6 +29,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 	}
 
 	var articles_ids QueryArgs
+	var articles_ids_placeholders []string
 	var articles []Article
 
 	var query_sb strings.Builder
@@ -54,35 +55,33 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 	rows, err := s.db.Query(query_sb.String(), options.Limit, options.Offset)
 
 	if err != nil {
+		log.Printf("failed to get articles: %s\n", err.Error())
 		return nil, err
 	}
 
 	for rows.Next() {
 		var article Article
 
-		rows.Scan(
+		if err := rows.Scan(
 			&article.Id,
 			&article.Name,
 			&article.Description,
 			&article.CreatedAt,
 			&article.UpdatedAt,
 			&article.DeletedAt,
-		)
+		); err != nil {
+			log.Printf("failed to scan articles row: %s\n", err.Error())
+			return nil, err
+		}
 
 		articles = append(articles, article)
 		articles_ids = append(articles_ids, article.Id)
+		articles_ids_placeholders = append(articles_ids_placeholders, "?")
 	}
 
-	articles_count := len(articles_ids)
-
-	var articles_ids_placeholders strings.Builder
-
-	for i := range articles_count {
-		if i == 0 {
-			articles_ids_placeholders.WriteString("?")
-		} else {
-			articles_ids_placeholders.WriteString(", ?")
-		}
+	if err := rows.Close(); err != nil {
+		log.Printf("failed to close articles rows: %s\n", err.Error())
+		return nil, err
 	}
 
 	query := fmt.Sprintf(`
@@ -97,12 +96,12 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 		JOIN tags on tags.id = pivot.tag_id
 		WHERE pivot.article_id IN (%s)
 		AND pivot.deleted_at IS NULL;
-	`, articles_ids_placeholders.String())
+	`, strings.Join(articles_ids_placeholders, ", "))
 
 	rows, err = s.db.Query(query, articles_ids...)
 
 	if err != nil {
-		// TODO: handle error
+		log.Printf("failed to get articles_tags: %s\n", err.Error())
 		return nil, err
 	}
 
@@ -118,6 +117,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 			&tag.DeletedAt,
 			&article_id,
 		); err != nil {
+			log.Printf("failed to scan articles_tags row: %s\n", err.Error())
 			return nil, err
 		}
 
@@ -127,6 +127,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 	}
 
 	if err = rows.Close(); err != nil {
+		log.Printf("failed to close articles_tags rows: %s\n", err.Error())
 		return nil, err
 	}
 
@@ -140,12 +141,12 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 		FROM articles_prices
 		WHERE article_id IN (%s)
 		ORDER BY created_at DESC;
-	`, articles_ids_placeholders.String())
+		`, strings.Join(articles_ids_placeholders, ", "))
 
 	rows, err = s.db.Query(query, articles_ids...)
 
 	if err != nil {
-		// TODO: handle error
+		log.Printf("failed to get articles_prices: %s\n", err.Error())
 		return nil, err
 	}
 
@@ -159,12 +160,57 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 			&price.Description,
 			&price.CreatedAt,
 		); err != nil {
+			log.Printf("failed to scan articles_prices row: %s\n", err.Error())
 			return nil, err
 		}
 
 		article_idx := slices.IndexFunc(articles, func(a Article) bool { return a.Id == price.ArticleId })
 		article := &articles[article_idx]
 		article.Prices = append(article.Prices, price)
+	}
+
+	if err = rows.Close(); err != nil {
+		log.Printf("failed to close articles_prices rows: %s\n", err.Error())
+		return nil, err
+	}
+
+	query = fmt.Sprintf(`
+		SELECT id, article_id, filename
+		FROM articles_images
+		WHERE article_id IN (%s)
+	`, strings.Join(articles_ids_placeholders, ", "))
+
+	log.Printf("query: \n%s\n", query)
+
+	rows, err = s.db.Query(query, articles_ids...)
+
+	if err != nil {
+		log.Printf("failed to get articles_images: %s\n", err.Error())
+		return nil, err
+	}
+
+	for rows.Next() {
+		image := ArticleImage{}
+
+		if err := rows.Scan(
+			&image.Id,
+			&image.ArticleId,
+			&image.Filename,
+		); err != nil {
+			log.Printf("failed to scan articles_images row: %s\n", err.Error())
+			return nil, err
+		}
+
+		image.Url = uploads.GetFilePublicUrl(articles_images_bucket, image.Filename)
+
+		article_idx := slices.IndexFunc(articles, func(a Article) bool { return a.Id == image.ArticleId })
+		article := &articles[article_idx]
+		article.Images = append(article.Images, image)
+	}
+
+	if err := rows.Close(); err != nil {
+		log.Printf("failed to close articles_images rows: %s\n", err.Error())
+		return nil, err
 	}
 
 	return articles, nil
