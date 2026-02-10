@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/yogusita/to-adhdo/domain/articles/model"
 	"github.com/yogusita/to-adhdo/domain/tags"
 	"github.com/yogusita/to-adhdo/domain/uploads"
 )
@@ -23,14 +24,14 @@ func CreateStore(db *sql.DB) *Store {
 	return &Store{db}
 }
 
-func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
+func (s *Store) List(options *ListingArticlesOptions) ([]model.Article, error) {
 	if options.Limit == 0 {
 		options.Limit = 100
 	}
 
 	var articles_ids QueryArgs
 	var articles_ids_placeholders []string
-	var articles []Article
+	var articles []model.Article
 
 	var query_sb strings.Builder
 
@@ -60,7 +61,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 	}
 
 	for rows.Next() {
-		var article Article
+		var article model.Article
 
 		if err := rows.Scan(
 			&article.Id,
@@ -121,7 +122,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 			return nil, err
 		}
 
-		article_idx := slices.IndexFunc(articles, func(a Article) bool { return a.Id == article_id })
+		article_idx := slices.IndexFunc(articles, func(a model.Article) bool { return a.Id == article_id })
 		article := &articles[article_idx]
 		article.Tags = append(article.Tags, tag)
 	}
@@ -151,7 +152,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 	}
 
 	for rows.Next() {
-		var price ArticlePrice
+		var price model.ArticlePrice
 
 		if err := rows.Scan(
 			&price.Id,
@@ -164,7 +165,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 			return nil, err
 		}
 
-		article_idx := slices.IndexFunc(articles, func(a Article) bool { return a.Id == price.ArticleId })
+		article_idx := slices.IndexFunc(articles, func(a model.Article) bool { return a.Id == price.ArticleId })
 		article := &articles[article_idx]
 		article.Prices = append(article.Prices, price)
 	}
@@ -190,7 +191,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 	}
 
 	for rows.Next() {
-		image := ArticleImage{}
+		image := model.ArticleImage{}
 
 		if err := rows.Scan(
 			&image.Id,
@@ -203,7 +204,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 
 		image.Url = uploads.GetFilePublicUrl(articles_images_bucket, image.Filename)
 
-		article_idx := slices.IndexFunc(articles, func(a Article) bool { return a.Id == image.ArticleId })
+		article_idx := slices.IndexFunc(articles, func(a model.Article) bool { return a.Id == image.ArticleId })
 		article := &articles[article_idx]
 		article.Images = append(article.Images, image)
 	}
@@ -216,8 +217,8 @@ func (s *Store) List(options *ListingArticlesOptions) ([]Article, error) {
 	return articles, nil
 }
 
-func (s *Store) Get(article_id string) (Article, error) {
-	article := Article{}
+func (s *Store) Get(article_id string) (model.Article, error) {
+	article := model.Article{}
 
 	query := `
 		SELECT
@@ -284,7 +285,7 @@ func (s *Store) Get(article_id string) (Article, error) {
 	}
 
 	for prices_rows.Next() {
-		var price ArticlePrice
+		var price model.ArticlePrice
 
 		if err := prices_rows.Scan(
 			&price.Id,
@@ -315,7 +316,7 @@ func (s *Store) Get(article_id string) (Article, error) {
 	}
 
 	for images_rows.Next() {
-		var image ArticleImage
+		var image model.ArticleImage
 
 		if err := images_rows.Scan(
 			&image.Id,
@@ -338,7 +339,7 @@ func (s *Store) Get(article_id string) (Article, error) {
 	return article, nil
 }
 
-func (s *Store) Create(article *Article) (string, error) {
+func (s *Store) Create(article *model.Article) (string, error) {
 	tx, err := s.db.Begin()
 
 	if err != nil {
@@ -414,7 +415,7 @@ func (s *Store) Create(article *Article) (string, error) {
 // If a tag that is related to the article in the db, is not present in the struct, the relationship is deleted.
 //
 // Tags without id are treated like new tags. They are created and then related to the article
-func (s *Store) Update(article *Article) error {
+func (s *Store) Update(article *model.Article) error {
 	tx, err := s.db.Begin()
 
 	if err != nil {
@@ -691,7 +692,7 @@ func dbIdToString(id int64) string {
 	return strconv.Itoa(int(id))
 }
 
-func createPrices(tx *sql.Tx, article Article) error {
+func createPrices(tx *sql.Tx, article model.Article) error {
 	var query_sb strings.Builder
 	query_args := QueryArgs{}
 
@@ -722,7 +723,7 @@ func createPrices(tx *sql.Tx, article Article) error {
 	return nil
 }
 
-func persistArticleImages(tx *sql.Tx, article *Article) error {
+func persistArticleImages(tx *sql.Tx, article *model.Article) error {
 	if len(article.Images) == 0 {
 		rows, err := tx.Query("SELECT filename FROM articles_images WHERE article_id = ?;", article.Id)
 

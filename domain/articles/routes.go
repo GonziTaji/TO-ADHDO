@@ -12,16 +12,23 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	tagsStore := tags.CreateStore(db)
 	controller := CreateController(store, &Views{}, tagsStore)
 
+	// Catalog routes
+
 	group := router.Group("articles")
 
-	group.GET("/", controller.GetListHandler)
-	group.GET("/catalog", controller.GetCatalogHandler)
-	group.GET("/new", controller.GetFormHandler)
+	group.GET("/", controller.GetCatalogHandler)
 	group.GET("/:article_id", controller.GetHandler)
-	group.GET("/:article_id/edit", controller.GetFormHandler)
 
-	group.POST("/", controller.CreateHandler)
-	group.POST("/uploads", controller.UploadImageHandler)
-	group.PUT("/:article_id", controller.UpdateHandler)
-	group.DELETE("/:article_id", controller.DeleteHandler)
+	// Admin routes
+
+	admin := router.Group("admin/" + group.BasePath())
+
+	admin.GET("/", controller.GetListHandler)
+	admin.GET("/new", controller.GetFormHandler)
+	admin.GET("/:article_id/edit", controller.GetFormHandler)
+
+	admin.POST("/", controller.CreateHandler)
+	admin.POST("/uploads", controller.UploadImageHandler)
+	admin.PUT("/:article_id", controller.UpdateHandler)
+	admin.DELETE("/:article_id", controller.DeleteHandler)
 }

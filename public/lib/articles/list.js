@@ -103,7 +103,7 @@ async function confirmDeleteHandler() {
 
     item.dataset.loading = true
 
-    const response = await fetch(`/articles/${article_id}`, { method: 'DELETE' })
+    const response = await fetch(`/admin/articles/${article_id}`, { method: 'DELETE' })
 
     item.dataset.loading = false
     dialog.close()

@@ -206,7 +206,7 @@ async function uploadImage(file) {
     const error_title = 'Error uploading image'
 
     try {
-        const response = await postWithProgress('/articles/uploads', fd, (progress => {
+        const response = await postWithProgress('/admin/articles/uploads', fd, (progress => {
             image_loader.dataset.progress = progress
         }))
 
@@ -372,7 +372,7 @@ async function formSubmitHandler(ev) {
     const article_id = body.get("id")
 
     let method = 'POST'
-    let endpoint = "/articles"
+    let endpoint = "/admin/articles"
 
     if (article_id != "") {
         method = 'PUT'

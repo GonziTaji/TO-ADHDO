@@ -1,4 +1,4 @@
-package articles
+package model
 
 import (
 	"github.com/yogusita/to-adhdo/domain/tags"
@@ -16,20 +16,4 @@ type Article struct {
 	CreatedAt string
 	UpdatedAt string
 	DeletedAt string
-}
-
-type ArticlePrice struct {
-	Id          string
-	ArticleId   string
-	Price       int
-	Description string
-	CreatedAt   string
-}
-
-type ArticleImage struct {
-	Id        string
-	ArticleId string
-	Filename  string
-	Url       string
-	CreatedAt string
 }
