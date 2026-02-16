@@ -21,41 +21,104 @@
 
         <ul class="articles-list">
             {{ range .}}
-            {{ template "catalog_list_item" . }}
+            <li class="article-row">
+                <a href="/articles/{{.Id}}" class="article-image-wrapper">
+                    {{range $i, $e := .Images}}
+                    {{ if eq $i 0}}
+                    <img src="{{.Url}}" alt="article-image-{{add $i 1}}" />
+                    {{end}}
+                    {{else}}
+                    <span>No image</span>
+                    {{end}}
+                </a>
+
+                <div class="article-info">
+                    <h3>
+                        <a href="/articles/{{.Id}}" class="article-name">{{ .Name }}</a>
+                    </h3>
+
+                    <ul class="article-tags-list">
+                        {{range .Tags}}
+                        <li class="article-tag">
+                            {{.Name}}
+                        </li>
+                        {{end}}
+                    </ul>
+
+                    <div class="article-price">
+                        {{range $i, $e := .Prices}}{{ if eq $i 0}}
+                        <span>{{ format_clp .Price }}</span>
+                        {{end}}{{end}}
+                    </div>
+                </div>
+            </li>
             {{end}}
         </ul>
     </div>
 
     <style>
         #articles-catalog {
+            h1 {
+                font-size: var(--font-size-xl);
+            }
+
             .articles-list {
+                background-color: var(--color-tertiary-bg);
                 display: flex;
                 flex-direction: column;
-                gap: 1rem;
 
                 .article-row {
-                    height: 150px;
+                    height: 160px;
+                    display: flex;
+                    align-items: center;
+                    column-gap: var(--space-5);
+                    padding: var(--space-4) var(--space-5);
 
-
-                    display: grid;
-                    grid-template-columns: 40% 1fr;
-                    column-gap: 1rem;
-                    padding: 24px;
-
-                    background-color: #ffff0044;
+                    +.article-row {
+                        border-top: 1px solid oklch(80% 0 0);
+                    }
 
                     .article-name {
-                        font-size: 1.4em;
+                        font-weight: 700;
+                        color: hsl(0 0 30%);
+                    }
+
+                    .article-info {
+                        flex-grow: 1;
+                        gap: var(--space-3);
+                        padding-block: var(--space-3);
+                        align-self: stretch;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                    }
+
+                    .article-price {
+                        font-size: var(--fontsize-lg);
+                        flex-grow: 1;
+                        align-content: end;
                     }
 
                     .article-image-wrapper {
-                        border: 1px solid oklch(60% 0 0);
+                        border: 1px solid oklch(80% 0 0);
                         overflow: hidden;
 
                         img {
                             height: 100%;
-                            width: 100%;
                             object-fit: cover;
+                        }
+
+                    }
+
+                    .article-tags-list {
+                        display: flex;
+                        gap: var(--space-3);
+
+                        .article-tag {
+                            font-size: var(--fontsize-sm);
+                            padding: var(--space-1) var(--space-3);
+                            border-radius: 4px;
+                            background-color: var(--color-tertiary);
                         }
                     }
                 }
@@ -67,27 +130,4 @@
 </body>
 
 </html>
-{{ end }}
-
-{{ define "catalog_list_item" }}
-<li class="article-row">
-    <a href="/articles/{{.Id}}" class="article-image-wrapper">
-        {{range $i, $e := .Images}}
-        {{ if eq $i 0}}
-        <img src="{{.Url}}" alt="article-image-{{add $i 1}}" />
-        {{end}}
-        {{else}}
-        <span>No image</span>
-        {{end}}
-    </a>
-
-    <div>
-        <a href="/articles/{{.Id}}" class="article-name">{{ .Name }}</a>
-
-        {{range $i, $e := .Prices}}{{ if eq $i 0}}
-        <span class="article-price">${{ .Price }}</span>
-        {{end}}{{end}}
-    </div>
-    </a>
-</li>
 {{ end }}
