@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -24,6 +25,79 @@ func CreateStore(db *sql.DB) *Store {
 	return &Store{db}
 }
 
+func (s *Store) Catalog() ([]model.CatalogItem, error) {
+	query := `
+		SELECT
+			a.id,
+			a.name,
+			t.name as tag_name,
+			COALESCE(p.price, 0),
+			COALESCE(tn.filename, 'no-thumbnail.png')
+
+		FROM articles a
+
+		LEFT JOIN articles_tags at
+			ON at.article_id = a.id
+			AND at.deleted_at IS NULL
+
+		JOIN tags t ON t.id = at.tag_id
+
+		LEFT JOIN (
+			SELECT article_id, filename, MAX(created_at)
+			FROM articles_images
+			GROUP BY article_id
+		) tn ON tn.article_id = a.id
+
+		LEFT JOIN (
+			SELECT article_id, price, MAX(created_at)
+			FROM articles_prices
+			GROUP BY article_id
+		) p ON p.article_id = a.id
+
+		WHERE a.deleted_at IS NULL;
+	`
+
+	const limit = 100
+
+	items_by_id := make(map[string]model.CatalogItem)
+
+	rows, err := s.db.Query(query, limit)
+
+	if err != nil {
+		fmt.Printf("error getting catalog items: %s", err.Error())
+		return nil, err
+	}
+
+	for rows.Next() {
+		var scanned_item model.CatalogItem
+		var item_tag struct{ Name string }
+
+		if err := rows.Scan(
+			&scanned_item.Id,
+			&scanned_item.Name,
+			&item_tag.Name,
+			&scanned_item.Price,
+			&scanned_item.ThumbnailUrl,
+		); err != nil {
+			log.Printf("error scanning catalog item data from db")
+			return nil, err
+		}
+
+		if item := items_by_id[scanned_item.Id]; item.Id != "" {
+			item.Tags = append(item.Tags, item_tag)
+		} else {
+			scanned_item.ThumbnailUrl = uploads.GetFilePublicUrl(articles_images_bucket, scanned_item.ThumbnailUrl)
+			scanned_item.Tags = append(scanned_item.Tags, item_tag)
+			items_by_id[scanned_item.Id] = scanned_item
+		}
+	}
+
+	items := slices.Collect(maps.Values(items_by_id))
+	log.Printf("\n\n%v\n\n", items)
+
+	return items, nil
+}
+
 func (s *Store) List(options *ListingArticlesOptions) ([]model.Article, error) {
 	if options.Limit == 0 {
 		options.Limit = 100
@@ -36,8 +110,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]model.Article, error) {
 	var query_sb strings.Builder
 
 	query_sb.WriteString(`
-		SELECT
-			id,
+		SELECT id,
 			name,
 			COALESCE(description, ''),
 			created_at,

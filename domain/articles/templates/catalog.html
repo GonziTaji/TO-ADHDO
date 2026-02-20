@@ -23,13 +23,7 @@
             {{ range .}}
             <li class="article-row">
                 <a href="/articles/{{.Id}}" class="article-image-wrapper">
-                    {{range $i, $e := .Images}}
-                    {{ if eq $i 0}}
-                    <img src="{{.Url}}" alt="article-image-{{add $i 1}}" />
-                    {{end}}
-                    {{else}}
-                    <span>No image</span>
-                    {{end}}
+                    <img src="{{.ThumbnailUrl}}" alt="{{.Name}}'s image" />
                 </a>
 
                 <div class="article-info">
@@ -46,9 +40,7 @@
                     </ul>
 
                     <div class="article-price">
-                        {{range $i, $e := .Prices}}{{ if eq $i 0}}
                         <span>{{ format_clp .Price }}</span>
-                        {{end}}{{end}}
                     </div>
                 </div>
             </li>
@@ -63,20 +55,34 @@
             }
 
             .articles-list {
-                background-color: var(--color-tertiary-bg);
-                display: flex;
-                flex-direction: column;
+                --column-count: 1;
+
+                display: grid;
+                grid-template-columns: repeat(var(--column-count), 1fr);
+                gap: 1rem;
+                background: #d0d0d0;
+                padding: 1rem;
+
+                @media(min-width: 425px) {
+                    --column-count: 2;
+                }
+
+                @media(min-width: 768px) {
+                    --column-count: 3;
+                }
+
+                @media(min-width: 1024px) {
+                    --column-count: 4;
+                }
 
                 .article-row {
-                    height: 160px;
+                    border-radius: 12px;
+                    background: white;
                     display: flex;
+                    flex-direction: column;
                     align-items: center;
                     column-gap: var(--space-5);
                     padding: var(--space-4) var(--space-5);
-
-                    +.article-row {
-                        border-top: 1px solid oklch(80% 0 0);
-                    }
 
                     .article-name {
                         font-weight: 700;
@@ -102,8 +108,11 @@
                     .article-image-wrapper {
                         border: 1px solid oklch(80% 0 0);
                         overflow: hidden;
+                        width: 100%;
+                        height: 144px;
 
                         img {
+                            width: 100%;
                             height: 100%;
                             object-fit: cover;
                         }

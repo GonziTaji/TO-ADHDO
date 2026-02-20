@@ -46,19 +46,12 @@ func (c *Controller) GetHandler(ctx *gin.Context) {
 }
 
 func (c *Controller) GetCatalogHandler(ctx *gin.Context) {
-	var options ListingArticlesOptions
-
-	if err := ctx.ShouldBindQuery(&options); err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	articles, err := c.store.List(&options)
+	catalog_items, err := c.store.Catalog()
 
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "articles/catalog", articles)
+	ctx.HTML(http.StatusOK, "articles/catalog", catalog_items)
 }
