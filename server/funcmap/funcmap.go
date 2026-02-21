@@ -7,5 +7,6 @@ func GetFuncMap() template.FuncMap {
 		"dict":       dict,
 		"add":        add,
 		"format_clp": format_clp,
+		"first":      first,
 	}
 }

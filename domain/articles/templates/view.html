@@ -11,18 +11,32 @@
 
 <body>
     <section class="article-details">
-        <h1 class="article-name">{{.Name}}</h1>
-
-        <ul class="article-tags">
-            {{ range .Tags }}
-            <li>{{.Name}}</li>
-            {{ end }}
-        </ul>
 
         <div class="article-images-container">
-            {{ range .ImagesUrls }}
-            <img class="article-image" src="{{.}}" alt="{{$.Name}}" />
-            {{ end }}
+            <div class="display">
+                {{ range $index, $element := .ImagesUrls }}
+                <img class="article-display" src="{{.}}" alt="{{$.Name}}" data-image_index="{{$index}}"
+                    data-selected="{{eq $index 0}}" />
+                {{ end }}
+            </div>
+
+            <div class="miniatures">
+                {{ range $index, $element := .ImagesUrls }}
+                <button type="button" data-action="select-image-miniature" data-image_index="{{$index}}">
+                    <img class="article-miniature" src="{{.}}" alt="{{$.Name}}" />
+                </button>
+                {{ end }}
+            </div>
+        </div>
+
+        <div>
+            <h1 class="article-name">{{.Name}}</h1>
+
+            <ul class="article-tags">
+                {{ range .Tags }}
+                <li>{{.Name}}</li>
+                {{ end }}
+            </ul>
         </div>
 
         <div>
@@ -39,6 +53,8 @@
     <style>
         .article-details {
             padding: 0.4rem 0.8rem;
+            display: grid;
+            gap: 1rem;
 
             .article-name {
                 font-size: var(--fontsize-lg);
@@ -62,16 +78,45 @@
             .article-images-container {
                 padding-block: 0.2rem;
 
-                .article-image {
-                    width: 100%;
-                    height: 200px;
-                    object-fit: contain;
+                .display {
+                    display: grid;
+                    grid-template-columns: 1;
+                    grid-template-rows: 1;
+
+                    img {
+                        grid-column: 1;
+                        grid-row: 1;
+                        width: 100%;
+                        height: 300px;
+                        object-fit: contain;
+                        opacity: 0;
+                        transition: opacity 400ms;
+
+                        &[data-selected="true"] {
+                            opacity: 1;
+                        }
+                    }
                 }
 
+                .miniatures {
+                    display: flex;
+                    max-width: 100%;
+                    overflow: auto;
+
+                    button {
+                        border: none;
+                        background: none;
+                        outline: none;
+
+                        img {
+                            width: 40px;
+                            height: 60px;
+                        }
+                    }
+                }
             }
 
             .article-description {
-                margin: 0.6rem;
                 padding: 1.2rem 0.6rem;
                 font-size: var(--fontsize-sm);
                 border-radius: 8px;
@@ -79,6 +124,28 @@
             }
         }
     </style>
+
+    <script>
+        document.addEventListener("click", (ev) => {
+            /** @type {HTMLButtonElement | null} */
+            const btn = ev.target.closest('button[data-action]')
+
+            if (!btn) return
+
+            switch (btn.dataset.action) {
+                case "select-image-miniature":
+                    handleImageSelection(btn.dataset.image_index)
+                    break
+            }
+        })
+
+        /** @param {string} selected_image_index */
+        function handleImageSelection(selected_image_index) {
+            document.querySelectorAll(".article-display").forEach((img) => {
+                img.dataset.selected = img.dataset.image_index == selected_image_index
+            })
+        }
+    </script>
 </body>
 
 </html>
