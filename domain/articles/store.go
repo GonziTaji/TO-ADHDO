@@ -290,13 +290,113 @@ func (s *Store) List(options *ListingArticlesOptions) ([]model.Article, error) {
 	return articles, nil
 }
 
+func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
+	article_details := model.ArticleDetails{}
+
+	query := `
+		SELECT
+			id,
+			name,
+			COALESCE(articles.description, ''),
+		CASE
+			WHEN deleted_at IS NULL THEN FALSE
+			ELSE TRUE END
+			as available
+		FROM articles
+		WHERE id = ?;
+	`
+
+	article_row := s.db.QueryRow(query, article_id)
+
+	if err := article_row.Scan(
+		&article_details.Id,
+		&article_details.Name,
+		&article_details.Description,
+		&article_details.IsDeleted,
+	); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Printf("error scanning article details from db: %s\n", err.Error())
+	}
+
+	query = `
+		SELECT
+			t.id,
+			t.name
+		FROM articles a
+		LEFT JOIN articles_tags at on a.id = at.article_id
+		LEFT JOIN tags t on at.tag_id = t.id
+		WHERE a.id = ?
+		AND at.deleted_at IS NULL
+	`
+
+	rows, err := s.db.Query(query, article_id)
+
+	if err != nil {
+		return article_details, err
+	}
+
+	for rows.Next() {
+		var tag model.ArticleDetailTag
+
+		if err = rows.Scan(&tag.Id, &tag.Name); err != nil {
+			log.Printf("error scanning tags for article details from db: %s\n", err.Error())
+			return article_details, err
+		}
+
+		article_details.Tags = append(article_details.Tags, tag)
+	}
+
+	if err := rows.Close(); err != nil {
+		return article_details, err
+	}
+
+	price_row := s.db.QueryRow(`
+		SELECT price
+		FROM articles_prices
+		WHERE article_id = ?
+		ORDER BY created_at DESC;
+	`, article_details.Id)
+
+	if err := price_row.Scan(&article_details.Price); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Printf("error scanning price of article details: %s\n", err.Error())
+		return article_details, err
+	}
+
+	images_rows, err := s.db.Query(`
+		SELECT filename
+		FROM articles_images
+		WHERE article_id = ?
+		ORDER BY created_at DESC;
+	`, article_details.Id)
+
+	if err != nil {
+		return article_details, err
+	}
+
+	for images_rows.Next() {
+		var filename string
+
+		if err := images_rows.Scan(&filename); err != nil {
+			return article_details, err
+		}
+
+		filename = uploads.GetFilePublicUrl(articles_images_bucket, filename)
+		article_details.ImagesUrls = append(article_details.ImagesUrls, filename)
+	}
+
+	if err := images_rows.Close(); err != nil {
+		return article_details, err
+	}
+
+	return article_details, nil
+}
+
 func (s *Store) Get(article_id string) (model.Article, error) {
 	article := model.Article{}
 
 	query := `
 		SELECT
 			COALESCE(tags.id, '') as tag_id,
-			COALESCE(tags.name, '') as tag_id,
+			COALESCE(tags.name, '') as tag_name,
 			articles.id,
 			articles.name,
 			COALESCE(articles.description, ''),

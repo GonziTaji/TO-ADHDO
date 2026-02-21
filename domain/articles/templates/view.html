@@ -1,0 +1,85 @@
+{{ define "articles/view" }}
+<!doctype>
+<html>
+
+<head>
+    <title>{{.Name }} - Catalog</title>
+
+    {{ template "meta_tags" }}
+    {{ template "base_styles" }}
+</head>
+
+<body>
+    <section class="article-details">
+        <h1 class="article-name">{{.Name}}</h1>
+
+        <ul class="article-tags">
+            {{ range .Tags }}
+            <li>{{.Name}}</li>
+            {{ end }}
+        </ul>
+
+        <div class="article-images-container">
+            {{ range .ImagesUrls }}
+            <img class="article-image" src="{{.}}" alt="{{$.Name}}" />
+            {{ end }}
+        </div>
+
+        <div>
+            {{ if .IsDeleted }}
+            <span>Not available</span>
+            {{ else }}
+            <span class="article-price">{{ format_clp .Price}}</span>
+            {{ end }}
+        </div>
+
+        <p class="article-description">{{.Description}}</p>
+    </section>
+
+    <style>
+        .article-details {
+            padding: 0.4rem 0.8rem;
+
+            .article-name {
+                font-size: var(--fontsize-lg);
+            }
+
+            ul.article-tags {
+                display: flex;
+                gap: 0.4rem;
+
+                li {
+                    font-size: var(--fontsize-xs);
+                    padding: 0.2rem 0.6rem;
+                    background: #00000020;
+                }
+            }
+
+            .article-price {
+                font-size: var(--fontsize-lg);
+            }
+
+            .article-images-container {
+                padding-block: 0.2rem;
+
+                .article-image {
+                    width: 100%;
+                    height: 200px;
+                    object-fit: contain;
+                }
+
+            }
+
+            .article-description {
+                margin: 0.6rem;
+                padding: 1.2rem 0.6rem;
+                font-size: var(--fontsize-sm);
+                border-radius: 8px;
+                background: #f0f0f0;
+            }
+        }
+    </style>
+</body>
+
+</html>
+{{ end }}

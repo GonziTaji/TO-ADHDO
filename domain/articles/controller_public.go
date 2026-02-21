@@ -8,7 +8,6 @@ import (
 
 type RenderArticleViewOptions struct {
 	ArticleId string `uri:"article_id" binding:"required"`
-	ViewName  string `uri:"view_name" binding:"required"`
 }
 
 func (c *Controller) GetHandler(ctx *gin.Context) {
@@ -19,7 +18,7 @@ func (c *Controller) GetHandler(ctx *gin.Context) {
 		return
 	}
 
-	article, err := c.store.Get(options.ArticleId)
+	article, err := c.store.GetDetails(options.ArticleId)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
@@ -31,18 +30,7 @@ func (c *Controller) GetHandler(ctx *gin.Context) {
 		return
 	}
 
-	switch options.ViewName {
-	case "list-item":
-		err = c.views.AsListItem(ctx.Writer, article)
-	default:
-		ctx.String(http.StatusBadRequest, "invalid view name: \"%s\"", options.ViewName)
-		return
-	}
-
-	if err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
-		return
-	}
+	ctx.HTML(http.StatusOK, "articles/view", article)
 }
 
 func (c *Controller) GetCatalogHandler(ctx *gin.Context) {
