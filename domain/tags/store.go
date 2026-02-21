@@ -22,22 +22,14 @@ func (s *Store) List(options ListingTagsOptions) ([]TagItemList, error) {
 	var sb_query strings.Builder
 
 	sb_query.WriteString(`
-		SELECT t.id, t.name, t.created_at, t.updated_at, t.deleted_at, COUNT(at.article_id) as usage
+		SELECT t.id, t.name, t.created_at, COUNT(at.article_id) as usage
 		FROM tags t
-		LEFT JOIN articles_tags at
-			ON t.id = at.tag_id
-			AND at.deleted_at IS NULL
+		LEFT JOIN articles_tags at ON t.id = at.tag_id
 	`)
 
-	if !options.IncludeDeleted {
-		sb_query.WriteString(
-			" WHERE t.deleted_at IS NULL ",
-		)
-	}
-
 	sb_query.WriteString(`
-		GROUP BY t.id, t.name, t.created_at, t.updated_at, t.deleted_at
-		ORDER BY t.updated_at DESC
+		GROUP BY t.id, t.name, t.created_at
+		ORDER BY t.created_at DESC
 		LIMIT 100 OFFSET 0;
 	`)
 
@@ -58,8 +50,6 @@ func (s *Store) List(options ListingTagsOptions) ([]TagItemList, error) {
 			&tag_data.Id,
 			&tag_data.Name,
 			&tag_data.CreatedAt,
-			&tag_data.UpdatedAt,
-			&tag_data.DeletedAt,
 			&tag_data.Usage,
 		); err != nil {
 			log.Printf("could not scan task row: %s\n", err.Error())

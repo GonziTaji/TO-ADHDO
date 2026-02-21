@@ -30,7 +30,7 @@ func (s *Store) Catalog() ([]model.CatalogItem, error) {
 		SELECT
 			a.id,
 			a.name,
-			t.name as tag_name,
+			COALESCE(t.name, '') as tag_name,
 			COALESCE(p.price, 0),
 			COALESCE(tn.filename, 'no-thumbnail.png')
 
@@ -38,9 +38,9 @@ func (s *Store) Catalog() ([]model.CatalogItem, error) {
 
 		LEFT JOIN articles_tags at
 			ON at.article_id = a.id
-			AND at.deleted_at IS NULL
 
-		JOIN tags t ON t.id = at.tag_id
+		LEFT JOIN tags t
+			ON t.id = at.tag_id
 
 		LEFT JOIN (
 			SELECT article_id, filename, MAX(created_at)
@@ -69,6 +69,7 @@ func (s *Store) Catalog() ([]model.CatalogItem, error) {
 	}
 
 	for rows.Next() {
+		log.Println("in article row for catalog")
 		var scanned_item model.CatalogItem
 		var item_tag struct{ Name string }
 
@@ -79,16 +80,19 @@ func (s *Store) Catalog() ([]model.CatalogItem, error) {
 			&scanned_item.Price,
 			&scanned_item.ThumbnailUrl,
 		); err != nil {
-			log.Printf("error scanning catalog item data from db")
+			log.Printf("error scanning catalog item data from db %s\n", err.Error())
 			return nil, err
 		}
 
-		if item := items_by_id[scanned_item.Id]; item.Id != "" {
-			item.Tags = append(item.Tags, item_tag)
-		} else {
+		if items_by_id[scanned_item.Id].Id == "" {
 			scanned_item.ThumbnailUrl = uploads.GetFilePublicUrl(articles_images_bucket, scanned_item.ThumbnailUrl)
-			scanned_item.Tags = append(scanned_item.Tags, item_tag)
 			items_by_id[scanned_item.Id] = scanned_item
+		}
+
+		if item_tag.Name != "" {
+			item := items_by_id[scanned_item.Id]
+			item.Tags = append(item.Tags, item_tag)
+			items_by_id[scanned_item.Id] = item
 		}
 	}
 
@@ -163,13 +167,10 @@ func (s *Store) List(options *ListingArticlesOptions) ([]model.Article, error) {
 			tags.id,
 			tags.name,
 			tags.created_at,
-			tags.updated_at,
-			COALESCE(tags.deleted_at, ''),
-			pivot.article_id as article_id
-		FROM articles_tags as pivot
-		JOIN tags on tags.id = pivot.tag_id
-		WHERE pivot.article_id IN (%s)
-		AND pivot.deleted_at IS NULL;
+			at.article_id as article_id
+		FROM articles_tags as at
+		JOIN tags on tags.id = at.tag_id
+		WHERE at.article_id IN (%s);
 	`, strings.Join(articles_ids_placeholders, ", "))
 
 	rows, err = s.db.Query(query, articles_ids...)
@@ -187,8 +188,6 @@ func (s *Store) List(options *ListingArticlesOptions) ([]model.Article, error) {
 			&tag.Id,
 			&tag.Name,
 			&tag.CreatedAt,
-			&tag.UpdatedAt,
-			&tag.DeletedAt,
 			&article_id,
 		); err != nil {
 			log.Printf("failed to scan articles_tags row: %s\n", err.Error())
@@ -299,8 +298,11 @@ func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
 			name,
 			COALESCE(articles.description, ''),
 		CASE
-			WHEN deleted_at IS NULL THEN FALSE
-			ELSE TRUE END
+			WHEN
+				deleted_at IS NULL
+			THEN FALSE
+			ELSE TRUE
+			END
 			as available
 		FROM articles
 		WHERE id = ?;
@@ -315,6 +317,7 @@ func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
 		&article_details.IsDeleted,
 	); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Printf("error scanning article details from db: %s\n", err.Error())
+		return article_details, err
 	}
 
 	query = `
@@ -322,10 +325,9 @@ func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
 			t.id,
 			t.name
 		FROM articles a
-		LEFT JOIN articles_tags at on a.id = at.article_id
-		LEFT JOIN tags t on at.tag_id = t.id
+		JOIN articles_tags at on a.id = at.article_id
+		JOIN tags t on at.tag_id = t.id
 		WHERE a.id = ?
-		AND at.deleted_at IS NULL
 	`
 
 	rows, err := s.db.Query(query, article_id)
@@ -407,7 +409,6 @@ func (s *Store) Get(article_id string) (model.Article, error) {
 		LEFT JOIN articles_tags as pivot on articles.id = pivot.article_id
 		LEFT JOIN tags on pivot.tag_id = tags.id
 		WHERE articles.id = ?
-		AND pivot.deleted_at IS NULL
 		AND articles.deleted_at IS NULL;
 	`
 
@@ -642,8 +643,7 @@ func (s *Store) Update(article *model.Article) error {
 	tags_ids_in_relationships_query := `
 		SELECT tag_id
 		FROM articles_tags
-		WHERE article_id = ?
-		AND deleted_at IS NULL
+		WHERE article_id = ?;
 	`
 
 	rows, err := tx.Query(tags_ids_in_relationships_query, article.Id)
@@ -682,16 +682,7 @@ func (s *Store) Update(article *model.Article) error {
 
 	for _, tag_id := range tags_ids_in_relationships {
 		if input_tags_ids[tag_id] == "" {
-			_, err := tx.Exec(`
-					UPDATE articles_tags
-					SET
-						updated_at = current_timestamp,
-						deleted_at = current_timestamp
-					WHERE article_id = ?
-					and deleted_at IS NULL;
-					`,
-				article.Id, tag_id,
-			)
+			_, err := tx.Exec("DELETE FROM articles_tags WHERE article_id = ?;")
 
 			if err != nil {
 				log.Printf("could not soft delete articles_tags for tag id: %s\n", tag_id)
@@ -745,15 +736,12 @@ func (s *Store) Delete(article_id string) error {
 		"articles_images",
 		"articles_tags",
 	}
+	// TODO: remove images from disk
 
 	for _, table := range relationships_tables {
-		_, err = tx.Exec(`
-			UPDATE articles_tags
-			SET deleted_at = current_timestamp 
-			WHERE article_id = ?
-		`, article_id)
+		query := fmt.Sprintf("DELETE FROM %s WHERE article_id = ?;", table)
 
-		if err != nil {
+		if _, err := tx.Exec(query, article_id); err != nil {
 			log.Printf("Error soft-deleting article's %s: %s\n", table, err.Error())
 
 			if e := tx.Rollback(); e != nil {
@@ -917,6 +905,7 @@ func persistArticleImages(tx *sql.Tx, article *model.Article) error {
 		}
 
 		_, err = tx.Exec("DELETE FROM articles_images WHERE article_id = ?;", article.Id)
+		// TODO: delete images from disk
 
 		return err
 	}
@@ -1014,6 +1003,7 @@ func persistArticleImages(tx *sql.Tx, article *model.Article) error {
 		}
 
 		res, err := tx.Exec("DELETE FROM articles_images WHERE id = ?", id)
+		// TODO: delete images from disk
 
 		if err != nil {
 			return err
