@@ -17,3 +17,15 @@ type Article struct {
 	UpdatedAt string
 	DeletedAt string
 }
+
+type TagOption struct {
+	Id       string
+	Name     string
+	Disabled bool
+	Selected bool
+}
+
+type ArticleFormTemplateData struct {
+	Article    Article
+	TagOptions []TagOption
+}

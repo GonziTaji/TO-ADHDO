@@ -10,21 +10,12 @@ import (
 	"github.com/yogusita/to-adhdo/domain/uploads"
 )
 
-type TagOption struct {
-	Id       string
-	Name     string
-	Disabled bool
-}
-
-type ArticleFormTemplateData struct {
-	Article    model.Article
-	TagOptions []TagOption
-}
-
 type ListingArticlesOptions struct {
-	Limit          int8 `query:"limit"`
-	Offset         int8 `query:"offset"`
-	IncludeDeleted bool `query:"include_deleted"`
+	Limit          int8   `query:"limit"`
+	Offset         int8   `query:"offset"`
+	IncludeDeleted bool   `query:"include_deleted"`
+	SearchTerm     string `query:"s"`
+	TagsFilters    string `query:"tags"`
 }
 
 type ArticleFormData struct {
@@ -55,7 +46,7 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 	}
 
 	tags, err := c.tagsStore.List(tags.ListingTagsOptions{})
-	tag_options := make([]TagOption, len(tags))
+	tag_options := make([]model.TagOption, len(tags))
 
 	tags_ids_in_article := make(map[string]bool)
 
@@ -64,7 +55,7 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 	}
 
 	for i, tag := range tags {
-		tag_options[i] = TagOption{
+		tag_options[i] = model.TagOption{
 			Name:     tag.Name,
 			Id:       tag.Id,
 			Disabled: tags_ids_in_article[tag.Id],
@@ -76,7 +67,7 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 		return
 	}
 
-	formData := ArticleFormTemplateData{
+	formData := model.ArticleFormTemplateData{
 		Article:    article,
 		TagOptions: tag_options,
 	}

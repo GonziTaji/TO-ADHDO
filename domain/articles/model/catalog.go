@@ -22,3 +22,14 @@ type ArticleDetails struct {
 	ImagesUrls  []string
 	IsDeleted   bool
 }
+
+type CatalogFilterOptions struct {
+	SearchTerm    string   `form:"s"`
+	TagsIdsFilter []string `form:"tags"`
+}
+
+type CatalogData struct {
+	Articles []CatalogItem
+	Tags     []TagOption
+	Options  CatalogFilterOptions
+}

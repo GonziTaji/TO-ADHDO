@@ -13,14 +13,35 @@
     <div id="articles-catalog">
         <h1>Catalog</h1>
 
-        <form>
+        <form id="search-form">
+            <fieldset>
+                <legend>Search</legend>
+                <input type="text" name="search" id="search" placeholder="search" value="{{ .Options.SearchTerm }}" />
+                <button>Search</button>
+                <button type="reset">Clear</button>
+            </fieldset>
+        </form>
+
+        <form id="filters-form">
             <fieldset>
                 <legend>Filters</legend>
+                Tags:
+                {{ range .Tags }}
+                <label for="tags-filter-{{.Id}}">
+                    <input type="checkbox" value="{{.Id}}" name="tags-filter" id="tags-filter-{{.Id}}" {{ if .Selected
+                        }} checked {{ end }} />
+                    {{.Name}}
+                </label>
+                {{ end }}
+                <div>
+                    <button>Apply filters</button>
+                    <button type="reset">Reset</button>
+                </div>
             </fieldset>
         </form>
 
         <ul class="articles-list">
-            {{ range .}}
+            {{ range .Articles}}
             <li class="article-row">
                 <a href="/articles/{{.Id}}" class="article-image-wrapper">
                     <img src="{{.ThumbnailUrl}}" alt="{{.Name}}'s image" />
@@ -135,7 +156,64 @@
         }
     </style>
 
-    <script></script>
+    <script>
+        document.addEventListener('submit', (ev) => {
+            ev.preventDefault()
+
+            const form = ev.submitter.closest('form')
+
+            if (!form) return
+
+            const fd = new FormData(form)
+
+            switch (form.id) {
+                case "search-form": {
+                    const url = new URL(location)
+                    url.searchParams.set("s", fd.get('search'))
+                    location = url
+                    break;
+                }
+
+                case "filters-form": {
+                    const url = new URL(location)
+                    url.searchParams.delete('tags')
+
+                    fd.getAll('tags-filter').forEach((tagid) => {
+                        url.searchParams.append("tags", tagid)
+                    })
+
+                    console.log(url.searchParams, url.searchParams.getAll('tags'))
+                    location = url
+                    break;
+                }
+            }
+        }, {capture: true})
+
+        document.addEventListener('reset', (ev) => {
+            ev.preventDefault()
+
+            const form = ev.target.closest('form')
+
+            if (!form) return
+
+            switch (form.id) {
+                case "search-form": {
+                    const url = new URL(location)
+                    url.searchParams.delete("s")
+                    location = url
+                    break;
+                }
+
+                case "filters-form": {
+                    const url = new URL(location)
+                    url.searchParams.delete('tags')
+                    location = url
+                    break;
+                }
+            }
+        }, {capture: true})
+
+    </script>
 </body>
 
 </html>

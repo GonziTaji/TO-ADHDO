@@ -25,8 +25,11 @@ func CreateStore(db *sql.DB) *Store {
 	return &Store{db}
 }
 
-func (s *Store) Catalog() ([]model.CatalogItem, error) {
-	query := `
+func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem, error) {
+	var queryargs QueryArgs
+	var query_sb strings.Builder
+
+	query_sb.WriteString(`
 		SELECT
 			a.id,
 			a.name,
@@ -54,14 +57,43 @@ func (s *Store) Catalog() ([]model.CatalogItem, error) {
 			GROUP BY article_id
 		) p ON p.article_id = a.id
 
-		WHERE a.deleted_at IS NULL;
-	`
+		WHERE a.deleted_at IS NULL
 
-	const limit = 100
+	`)
+
+	if len(options.SearchTerm) > 0 {
+		queryargs = append(queryargs, "%"+options.SearchTerm+"%")
+		query_sb.WriteString("\nAND a.name LIKE ?")
+	}
+
+	if len(options.TagsIdsFilter) > 0 {
+		query_sb.WriteString("\nAND t.id IN (")
+		for i, tagid := range options.TagsIdsFilter {
+			if i == 0 {
+				query_sb.WriteString("?")
+			} else {
+				query_sb.WriteString(",?")
+			}
+
+			log.Printf("found tag id for filter: %s\n", tagid)
+
+			queryargs = append(queryargs, tagid)
+		}
+		query_sb.WriteString(")")
+	}
+
+	queryargs = append(queryargs, 100)
+	query_sb.WriteString("\nLIMIT ?;")
 
 	items_by_id := make(map[string]model.CatalogItem)
 
-	rows, err := s.db.Query(query, limit)
+	log.Printf("query: \n%s\n", query_sb.String())
+	log.Printf("\nargs: \n")
+	for _, arg := range queryargs {
+		log.Printf("- %v\n", arg)
+	}
+
+	rows, err := s.db.Query(query_sb.String(), queryargs...)
 
 	if err != nil {
 		fmt.Printf("error getting catalog items: %s", err.Error())
@@ -97,7 +129,7 @@ func (s *Store) Catalog() ([]model.CatalogItem, error) {
 	}
 
 	items := slices.Collect(maps.Values(items_by_id))
-	log.Printf("\n\n%v\n\n", items)
+	log.Printf("\n\nitems: %v\n\n", items)
 
 	return items, nil
 }
