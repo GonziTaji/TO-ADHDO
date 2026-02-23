@@ -13,26 +13,53 @@
     <div id="tags_list">
         <h1>Tags list</h1>
 
-        <input type="text" name="search" id="search_input" placeholder="Search" />
+        <fieldset>
+            <legend>Search</legend>
+            <input type="text" name="search" id="search_input" placeholder="Search" value="{{.Options.SearchTerm}}" />
+            <button type="button" data-action="search">Search</button>
+        </fieldset>
 
-        <ul>
-            {{ range . }}
-            <li data-record-id="{{.Id}}">
-                <span>
-                    [ in {{.Usage}} articles
+        <fieldset>
+            <legend>Filters</legend>
+            <label for="availability-all">
+                <input type="radio" value="" name="availability" id="availability-all" {{if eq .Options.Usage "" }}
+                    checked {{end}} />
+                All
+            </label>
 
-                    {{ if ne .Usage 0 }}
-                    <a href="/admin/articles?tagid={{.Id}}" target="_parent">view</a>
-                    {{end}}
+            <label for="availability-use">
+                <input type="radio" value="used" name="availability" id="availability-use" {{if eq .Options.Usage "used"
+                    }} checked {{end}} />
+                Used
+            </label>
 
-                    ]</span>
+            <label for="availability-nouse">
+                <input type="radio" value="unused" name="availability" id="availability-nouse" {{if eq
+                    .Options.Usage "unused" }} checked {{end}} />
+                Unused
+            </label>
+        </fieldset>
 
-                <span>{{.Name}}</span>
+        <div id="list-container">
+            <ul>
+                {{ range .Tags }}
+                <li data-tagid="{{.Id}}">
+                    <span>
+                        [ in {{.Usage}} articles
 
-                <button type="button" data-action="delete-tag" data-tagid="{{.Id}}">&times;</button>
-            </li>
-            {{ end }}
-        </ul>
+                        {{ if ne .Usage 0 }}
+                        <a href="/admin/articles?tagid={{.Id}}" target="_parent">view</a>
+                        {{end}}
+
+                        ]</span>
+
+                    <span>{{.Name}}</span>
+
+                    <button type="button" data-action="delete-tag" data-tagid="{{.Id}}">&times;</button>
+                </li>
+                {{ end }}
+            </ul>
+        </div>
     </div>
 
     <style id="tags_list_styles">
@@ -82,10 +109,14 @@
     </style>
 
     <script>
-        document.addEventListener("DOMContentLoaded", mount)
+        document.addEventListener("DOMContentLoaded", bindEvents)
 
-        function mount() {
+        function bindEvents() {
             document.addEventListener("click", delegateClick)
+
+            document.querySelectorAll("input[name=availability]").forEach((el) => {
+                el.addEventListener("change", applyFilters)
+            })
         }
 
         function delegateClick(ev) {
@@ -99,13 +130,34 @@
 
             switch (action) {
                 case 'delete-tag':
-                    alert(`delete tag clicked for tag ${tagid}!!`)
+                    deleteTag(tagid);
                     break;
+
+                case 'search':
+                    applyFilters();
+                    break;
+            }
+        }
+
+        async function applyFilters() {
+            const usage = document.querySelector('input[name=availability]:checked')?.value ?? ''
+            const search = document.querySelector('input[name=search]')?.value ?? ''
+
+            location.href = `?usage=${usage}&s=${search}`
+        }
+
+        async function deleteTag(tagid) {
+            const r = await fetch(tagid, {method: 'DELETE'})
+
+            if (!r.ok) {
+                alert("Tag could not be deleted. Reason: " + await r.text())
+            } else {
+                alert("Tag removed!" + await r.text())
+                document.querySelector(`[data-tagid="${tagid}"]`).remove()
             }
         }
     </script>
 </body>
 
 </html>
-
 {{ end }}

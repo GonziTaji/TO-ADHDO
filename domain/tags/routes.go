@@ -11,6 +11,8 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	controller := CreateController(store)
 
 	group := router.Group("tags")
+	admin := router.Group("admin/" + group.BasePath())
 
-	group.GET("/", controller.GetListHandler)
+	admin.GET("/", controller.GetListHandler)
+	admin.DELETE("/:tagid", controller.DeleteHandler)
 }

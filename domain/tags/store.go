@@ -3,7 +3,6 @@ package tags
 import (
 	"database/sql"
 	"log"
-	"strings"
 )
 
 type Store struct {
@@ -19,23 +18,39 @@ func (s *Store) List(options ListingTagsOptions) ([]TagItemList, error) {
 		options.Limit = 100
 	}
 
-	var sb_query strings.Builder
-
-	sb_query.WriteString(`
-		SELECT t.id, t.name, t.created_at, COUNT(at.article_id) as usage
+	query := `
+		SELECT
+			t.id,
+			t.name,
+			t.created_at,
+			COUNT(at.article_id) as usage
 		FROM tags t
-		LEFT JOIN articles_tags at ON t.id = at.tag_id
-	`)
-
-	sb_query.WriteString(`
-		GROUP BY t.id, t.name, t.created_at
+		LEFT JOIN articles_tags at
+			ON t.id = at.tag_id
+		WHERE t.name LIKE ?
+		GROUP BY
+			t.id,
+			t.name,
+			t.created_at
+		HAVING (
+			(? = '' OR ? IS NULL)
+			OR (? = 'unused' AND COUNT(at.article_id) = 0)
+			OR (? = 'used' AND COUNT(at.article_id) > 0)
+		)
 		ORDER BY t.created_at DESC
-		LIMIT 100 OFFSET 0;
-	`)
+		LIMIT ? OFFSET ?;
+	`
 
-	log.Printf("query: %s", sb_query.String())
-
-	rows, err := s.db.Query(sb_query.String(), options.Limit, options.Offset)
+	rows, err := s.db.Query(
+		query,
+		"%"+options.SearchTerm+"%",
+		options.Usage,
+		options.Usage,
+		options.Usage,
+		options.Usage,
+		options.Limit,
+		options.Offset,
+	)
 
 	if err != nil {
 		log.Printf("could not get task list: %s\n", err.Error())
@@ -67,4 +82,10 @@ func (s *Store) List(options ListingTagsOptions) ([]TagItemList, error) {
 	}
 
 	return list, nil
+}
+
+func (s *Store) Delete(tag_id string) error {
+	_, err := s.db.Exec("DELETE FROM tags WHERE id = ?", tag_id)
+
+	return err
 }
