@@ -16,7 +16,7 @@
         <fieldset>
             <legend>Search</legend>
             <input type="text" name="search" id="search_input" placeholder="Search" value="{{.Options.SearchTerm}}" />
-            <button type="button" data-action="search">Search</button>
+            <button type="button" data-action="apply-filters">Search</button>
         </fieldset>
 
         <fieldset>
@@ -55,11 +55,24 @@
 
                     <span>{{.Name}}</span>
 
-                    <button type="button" data-action="delete-tag" data-tagid="{{.Id}}">&times;</button>
+                    <button type="button" command="show-modal" commandfor="confirm-delete-dialog"
+                        data-action="prompt-confirm-delete-tag" data-tagid="{{.Id}}">&times;</button>
                 </li>
                 {{ end }}
             </ul>
         </div>
+
+        <dialog id="confirm-delete-dialog" data-tagid="">
+            Delete tag?
+
+            <button type="button" command="close" data-action="delete-tag" commandfor="confirm-delete-dialog">
+                Confirm
+            </button>
+
+            <button type="button" command="close" commandfor="confirm-delete-dialog">
+                Cancel
+            </button>
+        </dialog>
     </div>
 
     <style id="tags_list_styles">
@@ -129,11 +142,15 @@
             const {action, tagid} = btn.dataset
 
             switch (action) {
+                case 'prompt-confirm-delete-tag':
+                    promptConfirmDeleteTag(tagid);
+                    break;
+
                 case 'delete-tag':
                     deleteTag(tagid);
                     break;
 
-                case 'search':
+                case 'apply-filters':
                     applyFilters();
                     break;
             }
@@ -144,6 +161,11 @@
             const search = document.querySelector('input[name=search]')?.value ?? ''
 
             location.href = `?usage=${usage}&s=${search}`
+        }
+
+        async function promptConfirmDeleteTag(tagid) {
+            // dialog is opened by the button using command and commandfor attributes
+            document.querySelector('[data-action="delete-tag"]').dataset.tagid = tagid
         }
 
         async function deleteTag(tagid) {

@@ -184,8 +184,6 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 		Tags:        []tags.Tag{},
 	}
 
-	// should this be in a "service" layer?
-	// Same logic as in the CreateHandler
 	for i, name := range form.TagNames {
 		tag := tags.Tag{
 			Id:   form.TagIds[i],

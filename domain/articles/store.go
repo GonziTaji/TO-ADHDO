@@ -544,27 +544,7 @@ func (s *Store) Create(article *model.Article) (string, error) {
 		}
 	}
 
-	var tags_ids []string
-	var tags_names_to_create []string
-
-	for _, tag := range article.Tags {
-		if tag.Id != "" {
-			tags_ids = append(tags_ids, tag.Id)
-		} else {
-			tags_names_to_create = append(tags_names_to_create, tag.Name)
-		}
-	}
-
-	new_tags_ids, err := createTags(tx, tags_names_to_create)
-
-	if err != nil {
-		log.Printf("could not create tags: %s\n", err.Error())
-		return "", err
-	}
-
-	tags_ids = slices.Concat(tags_ids, new_tags_ids)
-
-	if err := createArticleTags(tx, article_id, tags_ids); err != nil {
+	if err := persistArticleTags(tx, article); err != nil {
 		log.Printf("could not create articles_tags of new tags for article id %s: %s\n", article.Id, err.Error())
 		tx.Rollback()
 		return "", err
@@ -620,80 +600,7 @@ func (s *Store) Update(article *model.Article) error {
 		}
 	}
 
-	input_tags_ids := make(map[string]string)
-	var new_tags_names []string
-
-	for _, tag := range article.Tags {
-		if tag.Id == "" {
-			// TODO: check if names are not repeated? or deal with this from the DB and handle the error?
-			new_tags_names = append(new_tags_names, tag.Name)
-		} else {
-			input_tags_ids[tag.Id] = tag.Id
-		}
-	}
-
-	tags_ids_for_new_relationships, err := createTags(tx, new_tags_names)
-
-	if err != nil {
-		log.Printf("error creating new tags for article: %s\n", err.Error())
-		tx.Rollback()
-		return err
-	}
-
-	tags_ids_in_relationships_query := `
-		SELECT tag_id
-		FROM articles_tags
-		WHERE article_id = ?;
-	`
-
-	rows, err := tx.Query(tags_ids_in_relationships_query, article.Id)
-
-	if err != nil {
-		log.Printf("could not get articles_tags: %s\n", err.Error())
-		tx.Rollback()
-		return err
-	}
-
-	tags_ids_in_relationships := make(map[string]string)
-
-	for rows.Next() {
-		var id string
-
-		if err := rows.Scan(&id); err != nil {
-			log.Printf("could not scan rows of articles_tags: %s\n", err.Error())
-			tx.Rollback()
-			return err
-		}
-
-		tags_ids_in_relationships[id] = id
-	}
-
-	if err := rows.Close(); err != nil {
-		log.Printf("could not close rows of articles_tags of article: %s\n", err.Error())
-		tx.Rollback()
-		return err
-	}
-
-	for _, tag_id := range input_tags_ids {
-		if tags_ids_in_relationships[tag_id] == "" {
-			tags_ids_for_new_relationships = append(tags_ids_for_new_relationships, tag_id)
-		}
-	}
-
-	for _, tag_id := range tags_ids_in_relationships {
-		if input_tags_ids[tag_id] == "" {
-			_, err := tx.Exec("DELETE FROM articles_tags WHERE article_id = ?;")
-
-			if err != nil {
-				log.Printf("could not soft delete articles_tags for tag id: %s\n", tag_id)
-				tx.Rollback()
-				return err
-			}
-		}
-	}
-
-	if err := createArticleTags(tx, article.Id, tags_ids_for_new_relationships); err != nil {
-		log.Printf("could not create articles_tags of new tags for article id %s: %s\n", article.Id, err.Error())
+	if err := persistArticleTags(tx, article); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -786,30 +693,30 @@ func createTags(tx *sql.Tx, tags_names []string) ([]string, error) {
 		}
 	}
 
-	var tags_ids []string
-
 	rows, err := tx.Query(insert_tags_query.String(), new_tags_names...)
 
 	if err != nil {
-		return tags_ids, err
+		return nil, err
 	}
+
+	defer rows.Close()
+
+	tags_ids := []string{}
 
 	for rows.Next() {
-		var tag_id string
+		tags_ids = append(tags_ids, "")
+		target := &tags_ids[len(tags_ids)-1]
 
-		if err := rows.Scan(&tag_id); err != nil {
-			return tags_ids, err
+		if err := rows.Scan(target); err != nil {
+			return nil, err
 		}
-
-		tags_ids = append(tags_ids, tag_id)
 	}
 
-	if e := rows.Close(); e != nil {
-		log.Printf("Error closing rows: %s", e.Error())
-		return tags_ids, e
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
-	return tags_ids, nil
+	return tags_ids, err
 }
 
 func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
@@ -818,23 +725,20 @@ func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
 	}
 
 	var query_sb strings.Builder
-	var query_args QueryArgs
-
-	query_sb.WriteString(
-		"INSERT INTO articles_tags (article_id, tag_id) VALUES ",
-	)
+	query_sb.WriteString("INSERT INTO articles_tags (article_id, tag_id) VALUES ")
+	var queryargs QueryArgs
 
 	for i, tag_id := range tags_ids {
-		query_args = append(query_args, article_id, tag_id)
+		queryargs = append(queryargs, article_id, tag_id)
 
-		if i < len(tags_ids)-1 {
-			query_sb.WriteString(" (?, ?),")
+		if i == 0 {
+			query_sb.WriteString("(?, ?)")
 		} else {
-			query_sb.WriteString(" (?, ?);")
+			query_sb.WriteString(", (?, ?)")
 		}
 	}
 
-	res, err := tx.Exec(query_sb.String(), query_args...)
+	res, err := tx.Exec(query_sb.String(), queryargs...)
 
 	if err != nil {
 		return err
@@ -842,7 +746,7 @@ func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
 
 	count, _ := res.RowsAffected()
 
-	if int(count) != len(query_args)/2 {
+	if int(count) != len(queryargs)/2 {
 		return errors.New("One or more rows could not be inserted")
 	}
 
@@ -1021,6 +925,92 @@ func persistArticleImages(tx *sql.Tx, article *model.Article) error {
 	}
 
 	if err := rows.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func persistArticleTags(tx *sql.Tx, article *model.Article) error {
+	tags_ids_in_article := make(map[string]string)
+	var new_tags_names []string
+
+	for _, tag := range article.Tags {
+		if tag.Id == "" {
+			// TODO: check if names are not repeated? or deal with this from the DB and handle the error?
+			new_tags_names = append(new_tags_names, tag.Name)
+		} else {
+			tags_ids_in_article[tag.Id] = tag.Id
+		}
+	}
+
+	tags_ids_for_new_relationships, err := createTags(tx, new_tags_names)
+
+	if err != nil {
+		log.Printf("error creating new tags for article: %s\n", err.Error())
+		tx.Rollback()
+		return err
+	}
+
+	tags_ids_in_relationships_query := `
+		SELECT tag_id
+		FROM articles_tags
+		WHERE article_id = ?;
+	`
+
+	rows, err := tx.Query(tags_ids_in_relationships_query, article.Id)
+
+	if err != nil {
+		log.Printf("could not get articles_tags: %s\n", err.Error())
+		tx.Rollback()
+		return err
+	}
+
+	defer rows.Close()
+
+	tags_ids_in_relationships := make(map[string]string)
+
+	for rows.Next() {
+		var id string
+
+		if err := rows.Scan(&id); err != nil {
+			log.Printf("could not scan rows of articles_tags: %s\n", err.Error())
+			tx.Rollback()
+			return err
+		}
+
+		tags_ids_in_relationships[id] = id
+	}
+
+	if rows.Err() != nil {
+		log.Printf("could not close rows of articles_tags of article: %s\n", rows.Err().Error())
+		tx.Rollback()
+		return err
+	}
+
+	for _, tag_id := range tags_ids_in_article {
+		if tags_ids_in_relationships[tag_id] == "" {
+			tags_ids_for_new_relationships = append(tags_ids_for_new_relationships, tag_id)
+		}
+	}
+
+	for _, tag_id := range tags_ids_in_relationships {
+		if tags_ids_in_article[tag_id] == "" {
+			_, err := tx.Exec("DELETE FROM articles_tags WHERE article_id = ?;")
+
+			if err != nil {
+				log.Printf("could not delete articles_tags for tag id: %s\n", tag_id)
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	err = createArticleTags(tx, article.Id, tags_ids_for_new_relationships)
+
+	if err != nil {
+		log.Printf("could not create articles_tags of new tags for article id %s: %s\n", article.Id, err.Error())
+		tx.Rollback()
 		return err
 	}
 

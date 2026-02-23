@@ -14,7 +14,7 @@ CREATE TABLE if NOT EXISTS articles_images(
     filename TEXT NOT NULL UNIQUE,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-    FOREIGN KEY (article_id) REFERENCES articles(id),
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
 
     UNIQUE(article_id, filename)
 );
@@ -26,7 +26,7 @@ CREATE TABLE if NOT EXISTS articles_prices(
     description TEXT NOT NULL DEFAULT "",
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-    FOREIGN KEY (article_id) REFERENCES articles(id)
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
 );
 
 CREATE TABLE if NOT EXISTS tags(
@@ -43,8 +43,6 @@ CREATE TABLE if NOT EXISTS articles_tags(
 
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
-    FOREIGN KEY(article_id) REFERENCES articles(id) ON DELETE CASCADE,
-    FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE,
 
     UNIQUE(tag_id, article_id)
 );

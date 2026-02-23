@@ -369,6 +369,9 @@ async function formSubmitHandler(ev) {
     ev.preventDefault()
 
     const body = new FormData(ev.currentTarget)
+    body.delete('image_uploader')
+    body.delete('tag_search')
+
     const article_id = body.get("id")
 
     let method = 'POST'
@@ -386,21 +389,7 @@ async function formSubmitHandler(ev) {
         return
     }
 
-    /** @type {HTMLDialogElement | null} */
-    const dialog = document.querySelector('dialog#success-dialog')
-    /** @type {HTMLAnchorElement | null} */
-    const anchor = dialog?.querySelector('a#success-dialog_article_link')
-
-    if (!dialog || !anchor) {
-        console.warn('dialog or anchor of the dialog not found in the DOM. using fallback')
-        alert('Success!')
-        location.href = response.headers.get('location')
-        return
-    }
-
-    anchor.href = response.headers.get('location')
-
-    dialog.showModal()
+    location.href = response.headers.get('location')
 }
 
 /** @param {KeyboardEvent} ev */

@@ -90,27 +90,6 @@ func getTemplatePaths() []string {
 	return slices.Concat(layouts_templates_paths, non_layout_templates_paths)
 }
 
-func newDB() (*sql.DB, error) {
-	data_souce_name, _ := env.LookupEnvWithDefault("DB_NAME", "database/main.db")
-
-	var err error
-	db, err := sql.Open("sqlite", data_souce_name)
-
-	if err != nil {
-		log.Printf("client open error: %s\n", err.Error())
-		return nil, err
-	}
-
-	err = db.Ping()
-
-	if err != nil {
-		log.Printf("server ping error: %s\n", err.Error())
-		return nil, err
-	}
-
-	return db, nil
-}
-
 func Start() error {
 	db, err := newDB()
 
