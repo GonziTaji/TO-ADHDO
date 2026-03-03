@@ -26,7 +26,7 @@ CREATE TABLE if NOT EXISTS articles_prices(
     description TEXT NOT NULL DEFAULT "",
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
 );
 
 CREATE TABLE if NOT EXISTS tags(
@@ -45,4 +45,38 @@ CREATE TABLE if NOT EXISTS articles_tags(
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
 
     UNIQUE(tag_id, article_id)
+);
+
+CREATE TABLE if NOT EXISTS wishitems (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT "",
+    external_url TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    deleted_at TEXT NULL,
+    observed_price INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE if NOT EXISTS wishitems_images(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    wishitem_id INTEGER NOT NULL,
+    filename TEXT NOT NULL UNIQUE,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+    FOREIGN KEY (wishitem_id) REFERENCES wishitem(id) ON DELETE CASCADE,
+
+    UNIQUE(wishitem_id, filename)
+);
+
+CREATE TABLE if NOT EXISTS wishitems_tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    wishitem_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+    FOREIGN KEY (wishitem_id) REFERENCES wishitem(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+
+    UNIQUE(tag_id, wishitem_id)
 );

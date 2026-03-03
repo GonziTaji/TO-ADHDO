@@ -1,0 +1,25 @@
+{{ define "wishlist"}}
+<!doctype>
+<html>
+
+<head>
+    <title>Wish Item form</title>
+
+    {{ template "meta_tags" }}
+    {{ template "base_styles" }}
+</head>
+
+<body>
+    <ul>
+        {{ range .List }}
+        <li>
+            <span>
+                {{.Name}}
+            </span>
+        </li>
+        {{ end }}
+    </ul>
+</body>
+
+</html>
+{{end}}

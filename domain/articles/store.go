@@ -11,11 +11,10 @@ import (
 	"strings"
 
 	"github.com/yogusita/to-adhdo/domain/articles/model"
+	"github.com/yogusita/to-adhdo/domain/shared"
 	"github.com/yogusita/to-adhdo/domain/tags"
 	"github.com/yogusita/to-adhdo/domain/uploads"
 )
-
-type QueryArgs []any
 
 type Store struct {
 	db *sql.DB
@@ -26,7 +25,7 @@ func CreateStore(db *sql.DB) *Store {
 }
 
 func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem, error) {
-	var queryargs QueryArgs
+	var queryargs shared.QueryArgs
 	var query_sb strings.Builder
 
 	query_sb.WriteString(`
@@ -139,7 +138,7 @@ func (s *Store) List(options *ListingArticlesOptions) ([]model.Article, error) {
 		options.Limit = 100
 	}
 
-	var articles_ids QueryArgs
+	var articles_ids shared.QueryArgs
 	var articles_ids_placeholders []string
 	var articles []model.Article
 
@@ -713,7 +712,7 @@ func createTags(tx *sql.Tx, tags_names []string) ([]string, error) {
 
 	insert_tags_query.WriteString("INSERT INTO tags (name) VALUES")
 
-	var new_tags_names QueryArgs
+	var new_tags_names shared.QueryArgs
 
 	for i, tag_name := range tags_names {
 		new_tags_names = append(new_tags_names, tag_name)
@@ -758,7 +757,7 @@ func createArticleTags(tx *sql.Tx, article_id string, tags_ids []string) error {
 
 	var query_sb strings.Builder
 	query_sb.WriteString("INSERT INTO articles_tags (article_id, tag_id) VALUES ")
-	var queryargs QueryArgs
+	var queryargs shared.QueryArgs
 
 	for i, tag_id := range tags_ids {
 		queryargs = append(queryargs, article_id, tag_id)
@@ -791,7 +790,7 @@ func dbIdToString(id int64) string {
 
 func createPrices(tx *sql.Tx, article model.Article) error {
 	var query_sb strings.Builder
-	query_args := QueryArgs{}
+	query_args := shared.QueryArgs{}
 
 	query_sb.WriteString(`
 			INSERT INTO articles_prices (article_id, price, description)
@@ -846,7 +845,7 @@ func persistArticleImages(tx *sql.Tx, article *model.Article) error {
 		return err
 	}
 
-	filenames_qargs := QueryArgs{}
+	filenames_qargs := shared.QueryArgs{}
 	filenames_qargs_tmpls := []string{}
 
 	for _, img := range article.Images {
@@ -923,7 +922,7 @@ func persistArticleImages(tx *sql.Tx, article *model.Article) error {
 
 	rows, err = tx.Query(
 		check_missing_images_query,
-		slices.Concat(QueryArgs{article.Id}, filenames_qargs)...,
+		slices.Concat(shared.QueryArgs{article.Id}, filenames_qargs)...,
 	)
 
 	if err != nil {

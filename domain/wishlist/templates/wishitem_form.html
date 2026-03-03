@@ -1,0 +1,116 @@
+{{ define "wishlist/wishitem/form" }}
+<!doctype>
+<html>
+
+<head>
+    <title>Wish Item form</title>
+
+    {{ template "meta_tags" }}
+    {{ template "base_styles" }}
+</head>
+
+<body>
+    <form>
+        <fieldset>
+            <legend>Main</legend>
+
+            <label for="external_url">External URL:</label>
+            <input type="text" name="external_url" id="external_url" value="{{.Record.ExternalUrl}}" required>
+            <div id="response-container"></div>
+
+            <label for="name">Name:</label>
+            <input type="text" name="name" id="name" value="{{.Record.Name}}" required>
+
+            <label for="description">Description:</label>
+            <textarea name="description" id="description" rows="5">
+                {{.Record.Description}}
+            </textarea>
+
+            <label for="observed_price">Observed price:</label>
+            <input type="text" name="observed_price" id="observed_price" value="{{.Record.ObservedPrice}}">
+        </fieldset>
+
+        <fieldset>
+            <legend>Tags</legend>
+            <span>Not available yet :(</span>
+        </fieldset>
+
+        <fieldset>
+            <legend>Images</legend>
+            <span>Not available yet :(</span>
+        </fieldset>
+
+        <button>Save</button>
+
+        <input type="hidden" name="id" value="{{.Record.Id}}" />
+    </form>
+
+    <script type="module">
+        const responseContainer = document.getElementById("response-container")
+        const externalUrlInput = document.getElementById("external_url")
+
+        const search = async (url) => {
+            try {
+                new URL(url)
+            } catch (e) {
+                console.info(`ignoring invalid url: ${parsedUrl}`)
+                return
+            }
+
+            responseContainer.dataset.loading = true
+
+            const encodedURI = encodeURIComponent(url)
+
+            const r = await fetch(`/api/wishlist/preview?url=${encodedURI}`)
+
+            responseContainer.dataset.loading = false
+            responseContainer.innerHTML = await r.text()
+        }
+
+        const debouncedSearch = ((ms) => {
+            let timeout;
+
+            return (url) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => search(url), ms);
+            }
+        })(300)
+
+        document.getElementById('external_url').addEventListener('input', (e) => {
+            debouncedSearch(e.currentTarget.value)
+        })
+
+        document.addEventListener('submit', async (e) => {
+            e.preventDefault()
+
+            const form = e.submitter.form
+            console.log(form)
+            const fd = new FormData(form)
+
+            const method = fd.get('id') === "" ? "POST" : "PUT";
+            console.log(method)
+
+            const r = await fetch("", {method, body: fd})
+
+            console.log("response", r)
+
+            const rt = await r.text()
+            console.log("response body", rt)
+
+        }, {useCapture: true})
+    </script>
+
+    <style>
+        fieldset {
+            display: grid;
+
+            label:not(:first-child) {
+                margin-top: 1rem;
+            }
+        }
+    </style>
+</body>
+
+<hr />
+
+{{end}}

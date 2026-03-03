@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/yogusita/to-adhdo/domain/articles"
 	"github.com/yogusita/to-adhdo/domain/tags"
+	"github.com/yogusita/to-adhdo/domain/wishlist"
 	"github.com/yogusita/to-adhdo/env"
 	"github.com/yogusita/to-adhdo/server/funcmap"
 	_ "modernc.org/sqlite"
@@ -61,6 +62,7 @@ func newRouter(db *sql.DB) *gin.Engine {
 
 	articles.RegisterRoutes(router, db)
 	tags.RegisterRoutes(router, db)
+	wishlist.RegisterRoutes(router, db)
 
 	router.Use(func(ctx *gin.Context) {
 		ctx.String(http.StatusNotFound, "Nothing here uwu")
