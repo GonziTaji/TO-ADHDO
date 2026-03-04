@@ -7,11 +7,12 @@ import (
 type Article struct {
 	Id string
 
-	Name        string
-	Description string
-	Tags        []tags.Tag
-	Images      []ArticleImage
-	Prices      []ArticlePrice
+	Name              string
+	Description       string
+	Tags              []tags.Tag
+	Images            []ArticleImage
+	Prices            []ArticlePrice
+	AvailableForTrade bool
 
 	CreatedAt string
 	UpdatedAt string

@@ -47,6 +47,13 @@
             {{ end }}
         </div>
 
+        {{ if .AvailableForTrade }}
+        <div>
+            <span>Available for trade!</span>
+            <a href="/wishlist" target="_blank">See the wishlist</a>
+        </div>
+        {{ end }}
+
         <p class="article-description">{{.Description}}</p>
     </section>
 

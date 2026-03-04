@@ -83,14 +83,11 @@
         document.addEventListener('submit', async (e) => {
             e.preventDefault()
 
-            const form = e.submitter.form
-            console.log(form)
-            const fd = new FormData(form)
+            const requestBody = new FormData(e.submitter.form)
 
-            const method = fd.get('id') === "" ? "POST" : "PUT";
-            console.log(method)
+            const method = requestBody.get('id') === "" ? "POST" : "PUT";
 
-            const r = await fetch("", {method, body: fd})
+            const r = await fetch("", {method, body: requestBody})
 
             console.log("response", r)
 

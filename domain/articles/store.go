@@ -35,6 +35,7 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			COALESCE(t.name, '') as tag_name,
 			COALESCE(p.price, 0),
 			COALESCE(tn.filename, 'no-thumbnail.png')
+			a.available_for_trade
 
 		FROM articles a
 
@@ -110,6 +111,7 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			&item_tag.Name,
 			&scanned_item.Price,
 			&scanned_item.ThumbnailUrl,
+			&scanned_item.AvailableForTrade,
 		); err != nil {
 			log.Printf("error scanning catalog item data from db %s\n", err.Error())
 			return nil, err
@@ -328,13 +330,11 @@ func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
 			id,
 			name,
 			COALESCE(articles.description, ''),
-		CASE
-			WHEN
-				deleted_at IS NULL
-			THEN FALSE
-			ELSE TRUE
-			END
-			as available
+			available_for_trade,
+			(
+				CASE WHEN deleted_at IS NULL
+				THEN FALSE ELSE TRUE END
+			) as available
 		FROM articles
 		WHERE id = ?;
 	`
@@ -345,6 +345,7 @@ func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
 		&article_details.Id,
 		&article_details.Name,
 		&article_details.Description,
+		&article_details.AvailableForTrade,
 		&article_details.IsDeleted,
 	); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Printf("error scanning article details from db: %s\n", err.Error())
@@ -435,7 +436,8 @@ func (s *Store) Get(article_id string) (model.Article, error) {
 			COALESCE(articles.description, ''),
 			articles.created_at,
 			articles.updated_at,
-			COALESCE(articles.deleted_at, '')
+			COALESCE(articles.deleted_at, ''),
+			articles.available_for_trade
 		FROM articles 
 		LEFT JOIN articles_tags as pivot on articles.id = pivot.article_id
 		LEFT JOIN tags on pivot.tag_id = tags.id
@@ -463,6 +465,7 @@ func (s *Store) Get(article_id string) (model.Article, error) {
 			&article.CreatedAt,
 			&article.UpdatedAt,
 			&article.DeletedAt,
+			&article.AvailableForTrade,
 		)
 
 		if err != nil {
@@ -553,9 +556,9 @@ func (s *Store) Create(article *model.Article) (string, error) {
 	}
 
 	res, err := tx.Exec(`
-		INSERT INTO articles (name, description)
-		VALUES (?, ?)
-	`, article.Name, article.Description)
+		INSERT INTO articles (name, description, available_for_trade)
+		VALUES (?, ?, ?)
+	`, article.Name, article.Description, article.AvailableForTrade)
 
 	if err != nil {
 		log.Printf("error inserting article: %s\n", err.Error())
@@ -612,9 +615,10 @@ func (s *Store) Update(article *model.Article) error {
 		UPDATE articles SET
 			name = ?,
 			description = ?,
+			available_for_trade = ?,
 			updated_at = current_timestamp
 		WHERE id = ?;
-	`, article.Name, article.Description, article.Id)
+	`, article.Name, article.Description, article.AvailableForTrade, article.Id)
 
 	if err != nil {
 		log.Printf("error updating article: %s\n", err.Error())

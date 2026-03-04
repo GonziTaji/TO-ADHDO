@@ -28,6 +28,7 @@ type ArticleFormData struct {
 	NewPriceDescription   string   `form:"new_price_description"`
 	ArticleImageFilenames []string `form:"article_images_filenames"`
 	ArticleImageIds       []string `form:"article_images_ids"`
+	AvailableForTrade     bool     `form:"available_for_trade"`
 }
 
 func (c *Controller) GetFormHandler(ctx *gin.Context) {
@@ -116,10 +117,11 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 	}
 
 	article := model.Article{
-		Name:        form.Name,
-		Description: form.Description,
-		Tags:        []tags.Tag{},
-		Images:      []model.ArticleImage{},
+		Name:              form.Name,
+		Description:       form.Description,
+		Tags:              []tags.Tag{},
+		AvailableForTrade: form.AvailableForTrade,
+		Images:            []model.ArticleImage{},
 	}
 
 	// should this be in a "service" layer?
@@ -169,10 +171,11 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 	}
 
 	article := model.Article{
-		Id:          form.Id,
-		Name:        form.Name,
-		Description: form.Description,
-		Tags:        []tags.Tag{},
+		Id:                form.Id,
+		Name:              form.Name,
+		Description:       form.Description,
+		AvailableForTrade: form.AvailableForTrade,
+		Tags:              []tags.Tag{},
 	}
 
 	for i, name := range form.TagNames {

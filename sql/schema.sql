@@ -3,6 +3,8 @@ CREATE TABLE if NOT EXISTS articles(
     name TEXT NOT NULL,
     description TEXT,
     attributes JSONB DEFAULT NULL,
+    available_for_trade BOOLEAN NOT NULL,
+
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TEXT DEFAULT NULL
@@ -80,3 +82,4 @@ CREATE TABLE if NOT EXISTS wishitems_tags (
 
     UNIQUE(tag_id, wishitem_id)
 );
+

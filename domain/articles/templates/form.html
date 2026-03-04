@@ -60,6 +60,20 @@
         </fieldset>
 
         <fieldset>
+            <legend>Available for trade</legend>
+            <label for="available_for_trade_T">
+                <input value="true" type="radio" name="available_for_trade" id="available_for_trade_T" {{ if
+                    .Article.AvailableForTrade }} checked {{ end }} />
+                Yes
+            </label>
+            <label for="available_for_trade_F">
+                <input value="false" type="radio" name="available_for_trade" id="available_for_trade_F" {{ if not
+                    .Article.AvailableForTrade }} checked {{ end }} />
+                No
+            </label>
+        </fieldset>
+
+        <fieldset>
             <legend>Prices</legend>
 
             <button id="open-new-price-dialog-btn" type="button" command="show-modal" commandfor="new-price-dialog">Add
