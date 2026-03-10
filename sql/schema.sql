@@ -3,7 +3,7 @@ CREATE TABLE if NOT EXISTS articles(
     name TEXT NOT NULL,
     description TEXT,
     attributes JSONB DEFAULT NULL,
-    available_for_trade BOOLEAN NOT NULL,
+    available_for_trade BOOLEAN NOT NULL DEFAULT FALSE,
 
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,

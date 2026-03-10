@@ -5,21 +5,85 @@
 <head>
     <title>Wish Item form</title>
 
-    {{ template "meta_tags" }}
-    {{ template "base_styles" }}
+    {{ template "meta_tags" }} {{ template "base_styles" }}
 </head>
 
 <body>
+    <form id="filters-form">
+        <fieldset>
+            <legend>Search</legend>
+            <input type="search" name="search" value="{{.SearchTerm}}" />
+
+            <button type="submit">Search</button>
+        </fieldset>
+
+        <fieldset>
+            <legend>Price range</legend>
+            <input type="text" pattern="\d+" inputmode="numeric" value="{{.PriceSelectedRange.Start}}"
+                name="price_start" min="{{.PriceRange.Start}}" max="{{.PriceRange.End}}" />
+            -
+            <input type="text" pattern="\d+" inputmode="numeric" value="{{.PriceSelectedRange.End}}" name="price_end"
+                min="{{.PriceRange.Start}}" max="{{.PriceRange.End}}" />
+        </fieldset>
+
+        <fieldset>
+            <legend>Tags</legend>
+
+            {{ range .TagsSelectOptions }}
+            <button class="tag-select-btn" type="button" data-action="select-tag" data-tagid="{{.Id}}"
+                data-selected="{{.Selected}}" {{if eq .Count 0}} disabled {{end}}>
+                <span class="text"> {{.Name}} ({{.Count}}) </span>
+
+                {{if ne .Count 0}}
+                <input type="hidden" name="tags" value="{{.Id}}" {{if not .Selected}} disabled {{end}} />
+                {{end}}
+            </button>
+            {{ end }}
+        </fieldset>
+
+        <button type="submit">Apply filters</button>
+    </form>
+
     <ul>
-        {{ range .List }}
+        {{ range .Items }}
         <li>
-            <span>
-                {{.Name}}
-            </span>
+            <span> {{.Name}} </span>
         </li>
         {{ end }}
     </ul>
+
+    <script type="module">
+        document.addEventListener("click", (ev) => {
+            const action_btn = ev.target.closest("[data-action]");
+
+            if (!action_btn) {
+                return;
+            }
+
+            const {action, tagid, selected} = action_btn.dataset;
+
+            switch (action) {
+                case "select-tag": {
+                    const parsedSelected =
+                        selected.toUpperCase() === "TRUE";
+                    const newSelected = !parsedSelected;
+
+                    action_btn.dataset.selected = String(newSelected);
+
+                    action_btn.querySelector('[name="tags"]').disabled =
+                        !newSelected;
+                    break;
+                }
+            }
+        });
+    </script>
+
+    <style>
+        .tag-select-btn[data-selected="true"] {
+            background: #f8d9f8;
+        }
+    </style>
 </body>
 
 </html>
-{{end}}
+{{end}} {{ define "wishlist/tag-select-btn" }} {{ end }}

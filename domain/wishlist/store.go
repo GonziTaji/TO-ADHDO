@@ -2,9 +2,14 @@ package wishlist
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"maps"
+	"slices"
+	"strings"
 
 	"github.com/yogusita/to-adhdo/domain/shared"
+	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
 type Store struct {
@@ -48,42 +53,166 @@ func (s *Store) GetWishitem(item_id string) (Wishitem, error) {
 	return w, nil
 }
 
-func (s *Store) GetWishlist() ([]Wishitem, error) {
-	query := `
-		SELECT w.id, w.name
-		FROM wishitems w
-		WHERE deleted_at IS NULL
-		ORDER BY created_at
-	`
+func (s *Store) GetWishlist(options WishlistFilterParams) (WishlistData, error) {
+	var data WishlistData
 
-	rows, err := s.db.Query(query)
+	var wishitems_qa shared.QueryArgs
+
+	tags_count := len(options.TagsIds)
+
+	var where_clauses []string
+
+	if options.PriceRangeStart > 0 {
+		where_clauses = append(where_clauses, "wi.observed_price >= ?")
+		wishitems_qa = append(wishitems_qa, options.PriceRangeStart)
+		data.PriceSelectedRange.Start = options.PriceRangeStart
+	}
+
+	if options.PriceRangeEnd > 0 {
+		where_clauses = append(where_clauses, "wi.observed_price <= ?")
+		wishitems_qa = append(wishitems_qa, options.PriceRangeEnd)
+		data.PriceSelectedRange.End = options.PriceRangeEnd
+	}
+
+	if options.SearchTerm != "" {
+		where_clauses = append(where_clauses, "wi.name like ?")
+		wishitems_qa = append(wishitems_qa, "%"+options.SearchTerm+"%")
+		data.SearchTerm = options.SearchTerm
+	}
+
+	// Get tags options before adding the tags filters to the where clauses
+
+	tags_options_q := fmt.Sprintf(`
+		SELECT
+			t.id,
+			t.name,
+			count(wt.id)
+		FROM tags t
+		LEFT JOIN wishitems_tags wt
+			ON wt.tag_id = t.id
+		%s
+		GROUP BY t.id, t.name
+	`, mergeWhereClauses(where_clauses))
+
+	log.Printf("tags query: %s", tags_options_q)
+
+	rows, err := s.db.Query(tags_options_q)
 
 	if err != nil {
-		log.Printf("error querying wishlists: %s\n", err.Error())
-		return nil, err
+		log.Println("error getting tags options for wishlist")
+		return WishlistData{}, err
 	}
-
-	defer rows.Close()
-
-	var wishlist []Wishitem
 
 	for rows.Next() {
-		var w Wishitem
+		var tag_option TagSelectOption
 
-		if err := rows.Scan(&w.Id, &w.Name); err != nil {
-			log.Printf("error scanning wishlist row: %s\n", err.Error())
-			return nil, err
+		if err := rows.Scan(
+			&tag_option.Id,
+			&tag_option.Name,
+			&tag_option.Count,
+		); err != nil {
+			rows.Close()
+			log.Println("error scanning tag option for wishlist")
+			return WishlistData{}, err
 		}
 
-		wishlist = append(wishlist, w)
+		if slices.Contains(options.TagsIds, tag_option.Id) {
+			tag_option.Selected = true
+		}
+
+		data.TagsSelectOptions = append(data.TagsSelectOptions, tag_option)
 	}
 
-	return wishlist, nil
+	if tags_count > 0 {
+		ids_templates := strings.Join(slices.Repeat([]string{"?"}, tags_count), ",")
+		clause := fmt.Sprintf("tag.id IN (%s)", ids_templates)
+		where_clauses = append(where_clauses, clause)
+
+		for _, id := range options.TagsIds {
+			wishitems_qa = append(wishitems_qa, id)
+		}
+	}
+
+	sortColumn := "id"
+	switch options.SortBy {
+	case WishlistSortByPrice:
+		sortColumn = "observed_price"
+
+	case WishlistSortByCratedAt:
+		sortColumn = "created_at"
+	}
+
+	// SQL injection guard - we make sure the value for the query is either DESC or ASC
+	sortDirection := "DESC"
+	if options.SortDirection == SortDirectionAsc {
+		sortColumn = "ASC"
+	}
+
+	wishitems_q := fmt.Sprintf(`
+		SELECT
+			wi.id,
+			wi.name,
+			wi.observed_price,
+			tag.id,
+			tag.name
+		FROM tags tag
+		JOIN wishitems_tags wt ON wt.tag_id = tag.id
+		JOIN wishitems wi ON wi.id = wt.wishitem_id
+		%s
+		ORDER BY wi.%s %s;
+	`, mergeWhereClauses(where_clauses), sortColumn, sortDirection)
+
+	log.Printf("wishitems query:\n%s\n", wishitems_q)
+	log.Printf("wishitems args:\n%v\n", wishitems_qa)
+
+	rows, err = s.db.Query(wishitems_q, wishitems_qa...)
+
+	if err != nil {
+		log.Printf("error querying wishitems: %s\n", err.Error())
+		return WishlistData{}, err
+	}
+
+	wishitems_by_id := make(map[string]Wishitem)
+
+	for rows.Next() {
+		var scanned Wishitem
+		var tag tags.Tag
+
+		if err := rows.Scan(
+			&scanned.Id,
+			&scanned.Name,
+			&scanned.ObservedPrice,
+			&tag.Id,
+			&tag.Name,
+		); err != nil {
+			log.Printf("error scanning wishlist row: %s\n", err.Error())
+			rows.Close()
+			return WishlistData{}, err
+		}
+
+		wi := wishitems_by_id[scanned.Id]
+		wi.Id = scanned.Id
+		wi.Name = scanned.Name
+		wi.ObservedPrice = scanned.ObservedPrice
+		wi.Tags = append(wi.Tags, tags.Tag{Id: tag.Id, Name: tag.Name})
+
+		wishitems_by_id[scanned.Id] = wi
+
+		if data.PriceRange.End < scanned.ObservedPrice {
+			data.PriceRange.End = scanned.ObservedPrice
+		} else if data.PriceRange.Start > scanned.ObservedPrice {
+			data.PriceRange.Start = scanned.ObservedPrice
+		}
+	}
+
+	data.Items = slices.Collect(maps.Values(wishitems_by_id))
+
+	return data, nil
 }
 
-func (s *Store) GetAdminList() ([]Wishitem, error) {
+func (s *Store) GetAdminList(options WishlistFilterParams) (WishlistData, error) {
 	// TODO:
-	return s.GetWishlist()
+	return s.GetWishlist(options)
 }
 
 func (s *Store) SaveWishitem(formdata WishitemFormData) (string, error) {
@@ -155,4 +284,20 @@ func (s *Store) DeleteWishitem(id string) error {
 	}
 
 	return nil
+}
+
+// given a list of strings S, it's converted into "WHERE S[0] AND S[1] AND S[2]..."
+func mergeWhereClauses(where_clauses []string) string {
+	var sb strings.Builder
+
+	if len(where_clauses) > 0 {
+		fmt.Fprintf(&sb, " WHERE %s ", where_clauses[0])
+
+		if len(where_clauses) > 1 {
+			sb.WriteString(" AND ")
+			sb.WriteString(strings.Join(where_clauses[1:], " AND "))
+		}
+	}
+
+	return sb.String()
 }

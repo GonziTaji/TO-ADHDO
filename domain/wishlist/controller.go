@@ -17,7 +17,7 @@ func CreateController(store *Store) Controller {
 }
 
 func (c *Controller) GetAdminListHandler(ctx *gin.Context) {
-	list, err := c.store.GetAdminList()
+	list, err := c.store.GetAdminList(WishlistFilterParams{})
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
@@ -30,16 +30,31 @@ func (c *Controller) GetAdminListHandler(ctx *gin.Context) {
 }
 
 func (c *Controller) GetListHandler(ctx *gin.Context) {
-	list, err := c.store.GetWishlist()
+	var options WishlistFilterParams
+
+	if err := ctx.BindQuery(&options); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if options.PriceRangeEnd != 0 && options.PriceRangeEnd < options.PriceRangeStart {
+		ctx.String(http.StatusBadRequest, "The start of the price range cannot be greater than its end")
+		return
+	}
+
+	log.Printf("search: %s", ctx.Query("search"))
+	log.Printf("options: %v\n", options)
+
+	wishlist_data, err := c.store.GetWishlist(options)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "wishlist", gin.H{
-		"List": list,
-	})
+	// log.Printf("%v\n", wishlist_data)
+
+	ctx.HTML(http.StatusOK, "wishlist", wishlist_data)
 }
 
 func (c *Controller) GetHandler(ctx *gin.Context) {
@@ -74,7 +89,7 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 		wi.Id = ""
 		wi.Name = ""
 		wi.ExternalUrl = ""
-		wi.ObservedPrice = "0"
+		wi.ObservedPrice = 0
 	}
 
 	// TODO: get tags
