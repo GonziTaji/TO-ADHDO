@@ -75,28 +75,29 @@ func (s *Store) GetWishlist(options WishlistFilterParams) (WishlistData, error) 
 	}
 
 	if options.SearchTerm != "" {
-		where_clauses = append(where_clauses, "wi.name like ?")
+		where_clauses = append(where_clauses, "wi.name LIKE ?")
 		wishitems_qa = append(wishitems_qa, "%"+options.SearchTerm+"%")
 		data.SearchTerm = options.SearchTerm
 	}
-
-	// Get tags options before adding the tags filters to the where clauses
 
 	tags_options_q := fmt.Sprintf(`
 		SELECT
 			t.id,
 			t.name,
-			count(wt.id)
+			count(wi.id)
 		FROM tags t
 		LEFT JOIN wishitems_tags wt
 			ON wt.tag_id = t.id
-		%s
-		GROUP BY t.id, t.name
-	`, mergeWhereClauses(where_clauses))
+		LEFT JOIN wishitems wi
+			ON wi.id = wt.wishitem_id
+			%s
+		GROUP BY t.id, t.name;
+	`, mergeExtraJoinWhereClauses(where_clauses))
 
-	log.Printf("tags query: %s", tags_options_q)
+	// log.Printf("tags query: %s\n", tags_options_q)
+	// log.Printf("query args: %v\n", wishitems_qa)
 
-	rows, err := s.db.Query(tags_options_q)
+	rows, err := s.db.Query(tags_options_q, wishitems_qa...)
 
 	if err != nil {
 		log.Println("error getting tags options for wishlist")
@@ -160,10 +161,10 @@ func (s *Store) GetWishlist(options WishlistFilterParams) (WishlistData, error) 
 		JOIN wishitems wi ON wi.id = wt.wishitem_id
 		%s
 		ORDER BY wi.%s %s;
-	`, mergeWhereClauses(where_clauses), sortColumn, sortDirection)
+	`, mergeExtraJoinWhereClauses(where_clauses), sortColumn, sortDirection)
 
-	log.Printf("wishitems query:\n%s\n", wishitems_q)
-	log.Printf("wishitems args:\n%v\n", wishitems_qa)
+	// log.Printf("wishitems query:\n%s\n", wishitems_q)
+	// log.Printf("wishitems args:\n%v\n", wishitems_qa)
 
 	rows, err = s.db.Query(wishitems_q, wishitems_qa...)
 
@@ -286,12 +287,12 @@ func (s *Store) DeleteWishitem(id string) error {
 	return nil
 }
 
-// given a list of strings S, it's converted into "WHERE S[0] AND S[1] AND S[2]..."
-func mergeWhereClauses(where_clauses []string) string {
+// given a list of strings S, it's converted into "AND S[0] AND S[1] AND S[2]..."
+func mergeExtraJoinWhereClauses(where_clauses []string) string {
 	var sb strings.Builder
 
 	if len(where_clauses) > 0 {
-		fmt.Fprintf(&sb, " WHERE %s ", where_clauses[0])
+		fmt.Fprintf(&sb, " AND %s ", where_clauses[0])
 
 		if len(where_clauses) > 1 {
 			sb.WriteString(" AND ")
