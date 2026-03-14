@@ -87,7 +87,6 @@ func loadTemplates() multitemplate.Renderer {
 		fm,
 		"domain/articles/layouts/default.html",
 		"domain/articles/pages/list.html",
-		"domain/articles/static/templates/articles_list/template.html",
 		"domain/shared/partials/base_styles.html",
 		"domain/shared/partials/meta_tags.html",
 		"domain/shared/partials/nav.html",
