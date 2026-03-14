@@ -1,5 +1,5 @@
 :root {
-    font-size: 21px;
+    font-size: var(--font-size-base);
     font-family: Arial, Helvetica, sans-serif;
 }
 

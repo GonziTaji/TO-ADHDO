@@ -55,7 +55,7 @@ func (c *Controller) GetListHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "tags/list", TagsListData{
+	ctx.HTML(http.StatusOK, "tags-list", TagsListData{
 		Tags:    list,
 		Options: options,
 	})

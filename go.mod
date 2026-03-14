@@ -3,14 +3,13 @@ module github.com/yogusita/to-adhdo
 go 1.25.1
 
 require (
-	github.com/PuerkitoBio/goquery v1.11.0
+	github.com/gin-contrib/multitemplate v1.1.1
 	github.com/gin-gonic/gin v1.11.0
 	github.com/google/uuid v1.6.0
 	modernc.org/sqlite v1.42.2
 )
 
 require (
-	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect

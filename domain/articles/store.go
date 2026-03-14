@@ -24,6 +24,33 @@ func CreateStore(db *sql.DB) *Store {
 	return &Store{db}
 }
 
+func (s *Store) WithTx(fn func(tx *sql.Tx) error) error {
+	tx, err := s.db.Begin()
+
+	if err != nil {
+		log.Printf("error starting transaction: %s\n", err.Error())
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return fmt.Errorf("rollback failed: %w", rollbackErr)
+		}
+
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return fmt.Errorf("commit failed: %w", err)
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem, error) {
 	var queryargs shared.QueryArgs
 	var query_sb strings.Builder
@@ -34,8 +61,9 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			a.name,
 			COALESCE(t.name, '') as tag_name,
 			COALESCE(p.price, 0),
-			COALESCE(tn.filename, 'no-thumbnail.png')
-			a.available_for_trade
+			COALESCE(tn.filename, 'no-thumbnail.png'),
+			a.available_for_trade,
+			a.reference_price
 
 		FROM articles a
 
@@ -58,7 +86,6 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 		) p ON p.article_id = a.id
 
 		WHERE a.deleted_at IS NULL
-
 	`)
 
 	if len(options.SearchTerm) > 0 {
@@ -96,7 +123,7 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 	rows, err := s.db.Query(query_sb.String(), queryargs...)
 
 	if err != nil {
-		fmt.Printf("error getting catalog items: %s", err.Error())
+		log.Printf("error getting catalog items: %s\n", err.Error())
 		return nil, err
 	}
 
@@ -112,6 +139,7 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			&scanned_item.Price,
 			&scanned_item.ThumbnailUrl,
 			&scanned_item.AvailableForTrade,
+			&scanned_item.ReferencePrice,
 		); err != nil {
 			log.Printf("error scanning catalog item data from db %s\n", err.Error())
 			return nil, err
@@ -548,54 +576,46 @@ func (s *Store) Get(article_id string) (model.Article, error) {
 }
 
 func (s *Store) Create(article *model.Article) (string, error) {
-	tx, err := s.db.Begin()
+	articleID := ""
 
-	if err != nil {
-		log.Printf("error starting transaction: %s\n", err.Error())
-		return "", err
-	}
-
-	res, err := tx.Exec(`
-		INSERT INTO articles (name, description, available_for_trade)
-		VALUES (?, ?, ?)
-	`, article.Name, article.Description, article.AvailableForTrade)
-
-	if err != nil {
-		log.Printf("error inserting article: %s\n", err.Error())
-		return "", err
-	}
-
-	i_article_id, _ := res.LastInsertId()
-	article_id := dbIdToString(i_article_id)
-	article.Id = article_id
-
-	if len(article.Prices) > 0 {
-		err := createPrices(tx, *article)
+	err := s.WithTx(func(tx *sql.Tx) error {
+		res, err := tx.Exec(`
+			INSERT INTO articles (name, description, available_for_trade)
+			VALUES (?, ?, ?)
+		`, article.Name, article.Description, article.AvailableForTrade)
 
 		if err != nil {
-			tx.Rollback()
-			return "", err
+			log.Printf("error inserting article: %s\n", err.Error())
+			return err
 		}
-	}
 
-	if err := persistArticleTags(tx, article); err != nil {
-		log.Printf("could not create articles_tags of new tags for article id %s: %s\n", article.Id, err.Error())
-		tx.Rollback()
+		iArticleID, _ := res.LastInsertId()
+		articleID = dbIdToString(iArticleID)
+		article.Id = articleID
+
+		if len(article.Prices) > 0 {
+			if err := createPrices(tx, *article); err != nil {
+				return err
+			}
+		}
+
+		if err := persistArticleTags(tx, article); err != nil {
+			log.Printf("could not create articles_tags of new tags for article id %s: %s\n", article.Id, err.Error())
+			return err
+		}
+
+		if err := persistArticleImages(tx, article); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		return "", err
 	}
 
-	if err := persistArticleImages(tx, article); err != nil {
-		tx.Rollback()
-		return "", err
-	}
-
-	if err = tx.Commit(); err != nil {
-		log.Printf("error commiting transaction: %s\n", err.Error())
-		tx.Rollback()
-		return "", err
-	}
-
-	return article_id, nil
+	return articleID, nil
 }
 
 // Updates the corresponding db tables with the data inside the article
@@ -604,103 +624,69 @@ func (s *Store) Create(article *model.Article) (string, error) {
 //
 // Tags without id are treated like new tags. They are created and then related to the article
 func (s *Store) Update(article *model.Article) error {
-	tx, err := s.db.Begin()
-
-	if err != nil {
-		log.Printf("error starting transaction: %s\n", err.Error())
-		return err
-	}
-
-	_, err = tx.Exec(`
-		UPDATE articles SET
-			name = ?,
-			description = ?,
-			available_for_trade = ?,
-			updated_at = current_timestamp
-		WHERE id = ?;
-	`, article.Name, article.Description, article.AvailableForTrade, article.Id)
-
-	if err != nil {
-		log.Printf("error updating article: %s\n", err.Error())
-		tx.Rollback()
-		return err
-	}
-
-	if len(article.Prices) > 0 {
-		err := createPrices(tx, *article)
+	return s.WithTx(func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			UPDATE articles SET
+				name = ?,
+				description = ?,
+				available_for_trade = ?,
+				updated_at = current_timestamp
+			WHERE id = ?;
+		`, article.Name, article.Description, article.AvailableForTrade, article.Id)
 
 		if err != nil {
-			tx.Rollback()
+			log.Printf("error updating article: %s\n", err.Error())
 			return err
 		}
-	}
 
-	if err := persistArticleTags(tx, article); err != nil {
-		tx.Rollback()
-		return err
-	}
+		if len(article.Prices) > 0 {
+			if err := createPrices(tx, *article); err != nil {
+				return err
+			}
+		}
 
-	if err := persistArticleImages(tx, article); err != nil {
-		tx.Rollback()
-		return err
-	}
+		if err := persistArticleTags(tx, article); err != nil {
+			return err
+		}
 
-	if err = tx.Commit(); err != nil {
-		log.Printf("error commiting transaction: %s\n", err.Error())
-		tx.Rollback()
-		return err
-	}
+		if err := persistArticleImages(tx, article); err != nil {
+			return err
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func (s *Store) Delete(article_id string) error {
-	tx, err := s.db.Begin()
+	return s.WithTx(func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			UPDATE articles
+			SET deleted_at = current_timestamp 
+			WHERE id = ?
+		`, article_id)
 
-	if err != nil {
-		log.Printf("Error starting transaction: %s\n", err.Error())
-		return err
-	}
-
-	_, err = tx.Exec(`
-		UPDATE articles
-		SET deleted_at = current_timestamp 
-		WHERE id = ?
-	`, article_id)
-
-	if err != nil {
-		log.Printf("Error soft-deleting article: %s\n", err.Error())
-		tx.Rollback()
-		return err
-	}
-
-	relationships_tables := []string{
-		"articles_images",
-		"articles_tags",
-	}
-	// TODO: remove images from disk
-
-	for _, table := range relationships_tables {
-		query := fmt.Sprintf("DELETE FROM %s WHERE article_id = ?;", table)
-
-		if _, err := tx.Exec(query, article_id); err != nil {
-			log.Printf("Error soft-deleting article's %s: %s\n", table, err.Error())
-
-			if e := tx.Rollback(); e != nil {
-				return err
-			}
-
+		if err != nil {
+			log.Printf("Error soft-deleting article: %s\n", err.Error())
 			return err
 		}
-	}
 
-	if err := tx.Commit(); err != nil {
-		log.Printf("Error commiting transaction: %s\n", err.Error())
-		tx.Rollback()
-		return err
-	}
+		relationships_tables := []string{
+			"articles_images",
+			"articles_tags",
+		}
+		// TODO: remove images from disk
 
-	return nil
+		for _, table := range relationships_tables {
+			query := fmt.Sprintf("DELETE FROM %s WHERE article_id = ?;", table)
+
+			if _, err := tx.Exec(query, article_id); err != nil {
+				log.Printf("Error soft-deleting article's %s: %s\n", table, err.Error())
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 // -------
@@ -983,7 +969,6 @@ func persistArticleTags(tx *sql.Tx, article *model.Article) error {
 
 	if err != nil {
 		log.Printf("error creating new tags for article: %s\n", err.Error())
-		tx.Rollback()
 		return err
 	}
 
@@ -997,7 +982,6 @@ func persistArticleTags(tx *sql.Tx, article *model.Article) error {
 
 	if err != nil {
 		log.Printf("could not get articles_tags: %s\n", err.Error())
-		tx.Rollback()
 		return err
 	}
 
@@ -1010,7 +994,6 @@ func persistArticleTags(tx *sql.Tx, article *model.Article) error {
 
 		if err := rows.Scan(&id); err != nil {
 			log.Printf("could not scan rows of articles_tags: %s\n", err.Error())
-			tx.Rollback()
 			return err
 		}
 
@@ -1019,7 +1002,6 @@ func persistArticleTags(tx *sql.Tx, article *model.Article) error {
 
 	if rows.Err() != nil {
 		log.Printf("could not close rows of articles_tags of article: %s\n", rows.Err().Error())
-		tx.Rollback()
 		return err
 	}
 
@@ -1029,13 +1011,18 @@ func persistArticleTags(tx *sql.Tx, article *model.Article) error {
 		}
 	}
 
+	log.Printf("\ntags_ids_in_relationships: %v \n", tags_ids_in_relationships)
+
 	for _, tag_id := range tags_ids_in_relationships {
+		log.Printf("tags_ids_in_article[tag_id] where tag_id = %s: %v \n", tag_id, tags_ids_in_article[tag_id])
+
 		if tags_ids_in_article[tag_id] == "" {
-			_, err := tx.Exec("DELETE FROM articles_tags WHERE article_id = ?;")
+			log.Println("executing delete on articles_tags")
+
+			_, err := tx.Exec("DELETE FROM articles_tags WHERE tag_id = ? AND article_id = ?;", tag_id, article.Id)
 
 			if err != nil {
 				log.Printf("could not delete articles_tags for tag id: %s\n", tag_id)
-				tx.Rollback()
 				return err
 			}
 		}
@@ -1045,7 +1032,6 @@ func persistArticleTags(tx *sql.Tx, article *model.Article) error {
 
 	if err != nil {
 		log.Printf("could not create articles_tags of new tags for article id %s: %s\n", article.Id, err.Error())
-		tx.Rollback()
 		return err
 	}
 

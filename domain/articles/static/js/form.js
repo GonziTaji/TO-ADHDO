@@ -1,5 +1,5 @@
-import postWithProgress from '../utils/postWithProgress.js'
-import { getFirstChildCopyFromTemplate } from "../utils/teststs.js"
+import postWithProgress from '/shared/static/js/postWithProgress.js'
+import { getFirstChildCopyFromTemplate } from "/shared/static/js/teststs.js"
 
 document.addEventListener("DOMContentLoaded", init)
 

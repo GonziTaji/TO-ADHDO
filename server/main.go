@@ -2,20 +2,16 @@ package server
 
 import (
 	"database/sql"
-	"io/fs"
 	"log"
 	"net/http"
-	"path/filepath"
-	"slices"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yogusita/to-adhdo/domain/articles"
+	"github.com/yogusita/to-adhdo/domain/shared"
 	"github.com/yogusita/to-adhdo/domain/tags"
 	"github.com/yogusita/to-adhdo/domain/wishlist"
 	"github.com/yogusita/to-adhdo/env"
-	"github.com/yogusita/to-adhdo/server/funcmap"
 	_ "modernc.org/sqlite"
 )
 
@@ -54,42 +50,20 @@ func newRouter(db *sql.DB) *gin.Engine {
 
 	router.Use(setupSecurityHeaders)
 
-	router.SetFuncMap(funcmap.GetFuncMap())
+	router.HTMLRender = loadTemplates()
 
 	registerStaticRoutes(router)
-
-	router.LoadHTMLFiles(getTemplatePaths()...)
 
 	articles.RegisterRoutes(router, db)
 	tags.RegisterRoutes(router, db)
 	wishlist.RegisterRoutes(router, db)
+	shared.RegisterRoutes(router, db)
 
 	router.Use(func(ctx *gin.Context) {
 		ctx.String(http.StatusNotFound, "Nothing here uwu")
 	})
 
 	return router
-}
-
-// TODO: most of this is not longer required. review and rewrite this func
-func getTemplatePaths() []string {
-	// Layouts need to be loaded first to define their blocks before the rest of the templates define them
-	var layouts_templates_paths []string
-	var non_layout_templates_paths []string
-
-	// TODO: take this out of here. Loading files should be done outside the initialization of the router)
-	// Walk function never errors
-	_ = filepath.Walk("domain", func(path string, info fs.FileInfo, err error) error {
-		if strings.HasSuffix(path, ".layout.html") {
-			layouts_templates_paths = append(layouts_templates_paths, path)
-		} else if strings.HasSuffix(path, ".html") {
-			non_layout_templates_paths = append(non_layout_templates_paths, path)
-		}
-
-		return nil
-	})
-
-	return slices.Concat(layouts_templates_paths, non_layout_templates_paths)
 }
 
 func Start() error {

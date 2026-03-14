@@ -1,0 +1,115 @@
+{{ define "title" }}
+{{ if eq .Record.Id "" }}
+Create article
+{{ else }}
+Update {{.Record.Name}}
+{{ end }}
+{{ end }}
+
+{{ define "content" }}
+<form>
+    <fieldset>
+        <legend>Main</legend>
+
+        <label for="external_url">External URL:</label>
+        <input type="text" name="external_url" id="external_url" value="{{.Record.ExternalUrl}}" required>
+        <div id="response-container"></div>
+
+        <label for="name">Name:</label>
+        <input type="text" name="name" id="name" value="{{.Record.Name}}" required>
+
+        <label for="description">Description:</label>
+        <textarea name="description" id="description" rows="5">
+            {{.Record.Description}}
+        </textarea>
+
+        <label for="observed_price">Observed price:</label>
+        <input type="text" name="observed_price" id="observed_price" value="{{.Record.ObservedPrice}}">
+    </fieldset>
+
+    <fieldset>
+        <legend>Tags</legend>
+
+        {{ range .Record.Tags }}
+        <div>
+            <span>{{.TagName}}</span>
+            <input type="hidden" name="tags_ids" value={{.Id}} />
+            <input type="hidden" name="wishitem_tags_ids" value={{.TagId}} />
+        </div>
+        {{ end }}
+    </fieldset>
+
+    <fieldset>
+        <legend>Images</legend>
+        {{ range .Record.Images }}
+        {{ . }}
+        {{ end }}
+    </fieldset>
+
+    <button>Save</button>
+
+    <input type="hidden" name="id" value="{{.Record.Id}}" />
+</form>
+
+<script type="module">
+    const responseContainer = document.getElementById("response-container")
+    const externalUrlInput = document.getElementById("external_url")
+
+    const search = async (url) => {
+        try {
+            new URL(url)
+        } catch (e) {
+            console.info(`ignoring invalid url: ${parsedUrl}`)
+            return
+        }
+
+        responseContainer.dataset.loading = true
+
+        const encodedURI = encodeURIComponent(url)
+
+        const r = await fetch(`/api/wishlist/preview?url=${encodedURI}`)
+
+        responseContainer.dataset.loading = false
+        responseContainer.innerHTML = await r.text()
+    }
+
+    const debouncedSearch = ((ms) => {
+        let timeout;
+
+        return (url) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => search(url), ms);
+        }
+    })(300)
+
+    document.getElementById('external_url').addEventListener('input', (e) => {
+        debouncedSearch(e.currentTarget.value)
+    })
+
+    document.addEventListener('submit', async (e) => {
+        e.preventDefault()
+
+        const requestBody = new FormData(e.submitter.form)
+
+        const method = requestBody.get('id') === "" ? "POST" : "PUT";
+
+        const r = await fetch("", {method, body: requestBody})
+
+        console.log("response", r)
+
+        const rt = await r.text()
+        console.log("response body", rt)
+
+    }, {useCapture: true})
+</script>
+
+<style>
+    fieldset {
+        display: grid;
+
+        label:not(:first-child) {
+            margin-top: 1rem;
+        }
+    }
+</style>
+{{ end }}

@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/yogusita/to-adhdo/domain/articles/model"
-	"github.com/yogusita/to-adhdo/domain/tags"
 	"github.com/yogusita/to-adhdo/domain/uploads"
 )
 
@@ -34,46 +33,14 @@ type ArticleFormData struct {
 func (c *Controller) GetFormHandler(ctx *gin.Context) {
 	article_id := ctx.Param("article_id")
 
-	var article model.Article
-
-	if article_id != "" {
-		var err error
-		article, err = c.store.Get(article_id)
-
-		if err != nil {
-			ctx.String(http.StatusBadRequest, err.Error())
-			return
-		}
-	}
-
-	tags, err := c.tagsStore.List(tags.ListingTagsOptions{})
-	tag_options := make([]model.TagOption, len(tags))
-
-	tags_ids_in_article := make(map[string]bool)
-
-	for _, tag := range article.Tags {
-		tags_ids_in_article[tag.Id] = true
-	}
-
-	for i, tag := range tags {
-		tag_options[i] = model.TagOption{
-			Name:     tag.Name,
-			Id:       tag.Id,
-			Disabled: tags_ids_in_article[tag.Id],
-		}
-	}
+	formData, err := c.service.GetFormData(article_id)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	formData := model.ArticleFormTemplateData{
-		Article:    article,
-		TagOptions: tag_options,
-	}
-
-	ctx.HTML(http.StatusOK, "articles/form", formData)
+	ctx.HTML(http.StatusOK, "articles-form", formData)
 }
 
 func (c *Controller) GetListHandler(ctx *gin.Context) {
@@ -84,14 +51,14 @@ func (c *Controller) GetListHandler(ctx *gin.Context) {
 		return
 	}
 
-	articles, err := c.store.List(&options)
+	articles, err := c.service.List(&options)
 
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "articles/list", articles)
+	ctx.HTML(http.StatusOK, "articles-list", articles)
 }
 
 func (c *Controller) DeleteHandler(ctx *gin.Context) {
@@ -102,7 +69,7 @@ func (c *Controller) DeleteHandler(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.store.Delete(article_id); err != nil {
+	if err := c.service.Delete(article_id); err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -116,42 +83,7 @@ func (c *Controller) CreateHandler(ctx *gin.Context) {
 		return
 	}
 
-	article := model.Article{
-		Name:              form.Name,
-		Description:       form.Description,
-		Tags:              []tags.Tag{},
-		AvailableForTrade: form.AvailableForTrade,
-		Images:            []model.ArticleImage{},
-	}
-
-	// should this be in a "service" layer?
-	// Same logic as in the UpdateHandler
-	for i, name := range form.TagNames {
-		tag := tags.Tag{
-			Id:   form.TagIds[i],
-			Name: name,
-		}
-
-		article.Tags = append(article.Tags, tag)
-	}
-
-	for i, id := range form.ArticleImageIds {
-		image := model.ArticleImage{
-			Id:       id,
-			Filename: form.ArticleImageFilenames[i],
-		}
-
-		article.Images = append(article.Images, image)
-	}
-
-	if form.NewPrice != 0 {
-		article.Prices = append(article.Prices, model.ArticlePrice{
-			Price:       form.NewPrice,
-			Description: form.NewPriceDescription,
-		})
-	}
-
-	article_id, err := c.store.Create(&article)
+	article_id, err := c.service.CreateFromForm(form)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
@@ -170,47 +102,14 @@ func (c *Controller) UpdateHandler(ctx *gin.Context) {
 		return
 	}
 
-	article := model.Article{
-		Id:                form.Id,
-		Name:              form.Name,
-		Description:       form.Description,
-		AvailableForTrade: form.AvailableForTrade,
-		Tags:              []tags.Tag{},
-	}
-
-	for i, name := range form.TagNames {
-		tag := tags.Tag{
-			Id:   form.TagIds[i],
-			Name: name,
-		}
-
-		article.Tags = append(article.Tags, tag)
-	}
-
-	for i, id := range form.ArticleImageIds {
-		image := model.ArticleImage{
-			Id:       id,
-			Filename: form.ArticleImageFilenames[i],
-		}
-
-		article.Images = append(article.Images, image)
-	}
-
-	if form.NewPrice != 0 {
-		article.Prices = append(article.Prices, model.ArticlePrice{
-			Price:       form.NewPrice,
-			Description: form.NewPriceDescription,
-		})
-	}
-
-	err := c.store.Update(&article)
+	err := c.service.UpdateFromForm(form)
 
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.Header("Location", "/articles/"+article.Id)
+	ctx.Header("Location", "/articles/"+form.Id)
 	ctx.Status(http.StatusOK)
 }
 

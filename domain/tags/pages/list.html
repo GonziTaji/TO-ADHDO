@@ -1,0 +1,171 @@
+{{ define "content" }}
+<div id="tags_list">
+    <h1>Tags list</h1>
+
+    <fieldset>
+        <legend>Search</legend>
+        <input type="text" name="search" id="search_input" placeholder="Search" value="{{.Options.SearchTerm}}" />
+        <button type="button" data-action="apply-filters">Search</button>
+    </fieldset>
+
+    <fieldset>
+        <legend>Filters</legend>
+        <label for="availability-all">
+            <input type="radio" value="" name="availability" id="availability-all" {{if eq .Options.Usage "" }}
+                checked {{end}} />
+            All
+        </label>
+
+        <label for="availability-use">
+            <input type="radio" value="used" name="availability" id="availability-use" {{if eq .Options.Usage "used"
+                }} checked {{end}} />
+            Used
+        </label>
+
+        <label for="availability-nouse">
+            <input type="radio" value="unused" name="availability" id="availability-nouse" {{if eq
+                .Options.Usage "unused" }} checked {{end}} />
+            Unused
+        </label>
+    </fieldset>
+
+    <div id="list-container">
+        <ul>
+            {{ range .Tags }}
+            <li data-tagid="{{.Id}}">
+                <span>
+                    [ in {{.Usage}} articles
+
+                    {{ if ne .Usage 0 }}
+                    <a href="/admin/articles?tagid={{.Id}}" target="_parent">view</a>
+                    {{ end }}
+
+                    ]</span>
+
+                <span>{{.Name}}</span>
+
+                <button type="button" command="show-modal" commandfor="confirm-delete-dialog"
+                    data-action="prompt-confirm-delete-tag" data-tagid="{{.Id}}">&times;</button>
+            </li>
+            {{ end }}
+        </ul>
+    </div>
+
+    <dialog id="confirm-delete-dialog" data-tagid="">
+        Delete tag?
+
+        <button type="button" command="close" data-action="delete-tag" commandfor="confirm-delete-dialog">
+            Confirm
+        </button>
+
+        <button type="button" command="close" commandfor="confirm-delete-dialog">
+            Cancel
+        </button>
+    </dialog>
+</div>
+
+<style id="tags_list_styles">
+    #tags_list {
+        margin: 40px auto 0 auto;
+        max-width: 600px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+
+        ul {
+            border: 2px solid #cccccc66;
+            border-radius: 4px;
+
+            margin: 0;
+            padding: 0;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+
+            li {
+                padding: 8px 16px;
+
+                display: grid;
+                grid-column: 1/4;
+                grid-template-columns: subgrid;
+                justify-content: start;
+                column-gap: 8px;
+
+                &:nth-child(2n) {
+                    background-color: #eee;
+                }
+
+                &:hover {
+                    background-color: #ddd;
+                }
+
+                button {
+                    cursor: pointer;
+                }
+
+                a {
+                    text-decoration: none;
+                }
+            }
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", bindEvents)
+
+    function bindEvents() {
+        document.addEventListener("click", delegateClick)
+
+        document.querySelectorAll("input[name=availability]").forEach((el) => {
+            el.addEventListener("change", applyFilters)
+        })
+    }
+
+    function delegateClick(ev) {
+        const btn = ev.target.closest('[data-action]')
+
+        if (!btn) {
+            return
+        }
+
+        const {action, tagid} = btn.dataset
+
+        switch (action) {
+            case 'prompt-confirm-delete-tag':
+                promptConfirmDeleteTag(tagid);
+                break;
+
+            case 'delete-tag':
+                deleteTag(tagid);
+                break;
+
+            case 'apply-filters':
+                applyFilters();
+                break;
+        }
+    }
+
+    async function applyFilters() {
+        const usage = document.querySelector('input[name=availability]:checked')?.value ?? ''
+        const search = document.querySelector('input[name=search]')?.value ?? ''
+
+        location.href = `?usage=${usage}&s=${search}`
+    }
+
+    async function promptConfirmDeleteTag(tagid) {
+        // dialog is opened by the button using command and commandfor attributes
+        document.querySelector('[data-action="delete-tag"]').dataset.tagid = tagid
+    }
+
+    async function deleteTag(tagid) {
+        const r = await fetch(tagid, {method: 'DELETE'})
+
+        if (!r.ok) {
+            alert("Tag could not be deleted. Reason: " + await r.text())
+        } else {
+            alert("Tag removed!" + await r.text())
+            document.querySelector(`[data-tagid="${tagid}"]`).remove()
+        }
+    }
+</script>
+{{ end }}

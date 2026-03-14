@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/yogusita/to-adhdo/domain/shared"
-	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
 type Store struct {
@@ -44,11 +43,72 @@ func (s *Store) GetWishitem(item_id string) (Wishitem, error) {
 		&w.ExternalUrl,
 	); err != nil {
 		log.Printf("error querying wishlists: %s\n", err.Error())
-		return w, err
+		return Wishitem{}, err
 	}
 
-	// TODO: populate images
-	// TODO: populate tags
+	query = `
+		SELECT
+			wt.id,
+			t.id,
+			t.name
+		FROM wishitems_tags wt
+		JOIN tags t
+			ON t.id = wt.tag_id
+		WHERE wt.wishitem_id = ?
+		ORDER BY t.name;
+	`
+
+	rows, err := s.db.Query(query, item_id)
+
+	if err != nil {
+		log.Printf("error querying wishitem tags: %s\n", err.Error())
+		return Wishitem{}, err
+	}
+
+	for rows.Next() {
+		var tag WishitemTag
+		if err := rows.Scan(
+			&tag.Id,
+			&tag.TagId,
+			&tag.TagName,
+		); err != nil {
+			log.Println("error scanning wishitem tag")
+			rows.Close()
+			return Wishitem{}, err
+		}
+
+		w.Tags = append(w.Tags, tag)
+	}
+
+	query = `
+		SELECT
+			id,
+			filename
+		FROM wishitems_images
+		WHERE wishitem_id = ?
+		ORDER BY created_at;
+	`
+
+	rows, err = s.db.Query(query, item_id)
+
+	if err != nil {
+		log.Println("error querying wishitem images")
+		return Wishitem{}, nil
+	}
+
+	for rows.Next() {
+		var img WishitemImage
+		if err := rows.Scan(
+			&img.Id,
+			&img.Filepath,
+		); err != nil {
+			log.Println("error scanning wishitem image")
+			rows.Close()
+			return Wishitem{}, err
+		}
+
+		w.Images = append(w.Images, img)
+	}
 
 	return w, nil
 }
@@ -154,6 +214,7 @@ func (s *Store) GetWishlist(options WishlistFilterParams) (WishlistData, error) 
 			wi.id,
 			wi.name,
 			wi.observed_price,
+			wt.id,
 			tag.id,
 			tag.name
 		FROM tags tag
@@ -177,14 +238,15 @@ func (s *Store) GetWishlist(options WishlistFilterParams) (WishlistData, error) 
 
 	for rows.Next() {
 		var scanned Wishitem
-		var tag tags.Tag
+		var tag WishitemTag
 
 		if err := rows.Scan(
 			&scanned.Id,
 			&scanned.Name,
 			&scanned.ObservedPrice,
 			&tag.Id,
-			&tag.Name,
+			&tag.TagId,
+			&tag.TagName,
 		); err != nil {
 			log.Printf("error scanning wishlist row: %s\n", err.Error())
 			rows.Close()
@@ -195,7 +257,7 @@ func (s *Store) GetWishlist(options WishlistFilterParams) (WishlistData, error) 
 		wi.Id = scanned.Id
 		wi.Name = scanned.Name
 		wi.ObservedPrice = scanned.ObservedPrice
-		wi.Tags = append(wi.Tags, tags.Tag{Id: tag.Id, Name: tag.Name})
+		wi.Tags = append(wi.Tags, tag)
 
 		wishitems_by_id[scanned.Id] = wi
 

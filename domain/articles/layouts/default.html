@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>{{ block "title" . }}{{ end }}</title>
+    {{ template "meta_tags" . }}
+    {{ template "base_styles" . }}
+</head>
+
+<body>
+    <nav>
+        {{ template "nav" . }}
+    </nav>
+
+    <main>
+        {{ block "content" . }}{{ end }}
+    </main>
+
+</body>
+
+</html>

@@ -10,13 +10,13 @@ import (
 type Views struct{}
 
 func (v *Views) AsListItem(w io.Writer, article model.Article) error {
-	tmpl, err := template.ParseFiles("public/lib/components/articles_list/template.html")
+	tmpl, err := template.ParseFiles("domain/articles/static/templates/articles_list/template.html")
 
 	if err != nil {
 		return err
 	}
 
-	tmpl.ExecuteTemplate(w, "article_as_list_item", article)
+	tmpl.ExecuteTemplate(w, "articles_list_item", article)
 
 	return nil
 }

@@ -1,0 +1,38 @@
+/* ******
+ * Resets
+ * 
+ * Removes and/or adjusts styles I don't like.
+ * And adds any style I like and think should apply to every element of a type
+ */
+
+body {
+    margin: 0;
+    font-family: sans-serif;
+    font-size: var(--fontsize-base);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-size: unset;
+    margin: 0;
+    display: unset;
+    font-weight: unset;
+}
+
+ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+a {
+    text-decoration: none;
+}
+
+button {
+    cursor: pointer;
+}

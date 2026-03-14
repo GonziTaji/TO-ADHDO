@@ -24,7 +24,7 @@ func (c *Controller) GetAdminListHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "wishlist/wishitem/list", gin.H{
+	ctx.HTML(http.StatusOK, "wishlist-admin", gin.H{
 		"List": list,
 	})
 }
@@ -52,7 +52,9 @@ func (c *Controller) GetListHandler(ctx *gin.Context) {
 		return
 	}
 
-	// log.Printf("%v\n", wishlist_data)
+	log.Printf("%v\n", wishlist_data)
+
+	wishlist_data.Title = "Yogusita's Wishlist"
 
 	ctx.HTML(http.StatusOK, "wishlist", wishlist_data)
 }
@@ -67,7 +69,7 @@ func (c *Controller) GetHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "wishlist/wishitem/view", wi)
+	ctx.HTML(http.StatusOK, "wishlist-view", wi)
 }
 
 func (c *Controller) GetFormHandler(ctx *gin.Context) {
@@ -95,7 +97,7 @@ func (c *Controller) GetFormHandler(ctx *gin.Context) {
 	// TODO: get tags
 	tags := []tags.Tag{}
 
-	ctx.HTML(http.StatusOK, "wishlist/wishitem/form", WishitemFormTemplateData{
+	ctx.HTML(http.StatusOK, "wishlist-form", WishitemFormTemplateData{
 		Record: wi,
 		Tags:   tags,
 	})

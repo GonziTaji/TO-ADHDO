@@ -1,6 +1,9 @@
 package wishlist
 
-import "github.com/yogusita/to-adhdo/domain/tags"
+import (
+	"github.com/yogusita/to-adhdo/domain/shared"
+	"github.com/yogusita/to-adhdo/domain/tags"
+)
 
 type WishitemMeta struct {
 	URL         string
@@ -35,15 +38,26 @@ type WishitemFormData struct {
 	ImageUrl      string   `form:"image_url"`
 }
 
+type WishitemTag struct {
+	Id      string
+	TagId   string
+	TagName string
+}
+
+type WishitemImage struct {
+	Id       string
+	Filepath string
+}
+
 type Wishitem struct {
 	Id            string
 	Name          string
 	Description   string
 	ExternalUrl   string
 	CratedAt      string
-	Tags          []tags.Tag
+	Tags          []WishitemTag
 	ObservedPrice int
-	ImgaeUrl      string
+	Images        []WishitemImage
 }
 
 type WishlistFilterParams struct {
@@ -71,6 +85,8 @@ type PriceRangeData struct {
 }
 
 type WishlistData struct {
+	shared.PageTemplateData
+
 	Items              []Wishitem
 	SearchTerm         string
 	TagsSelectOptions  []TagSelectOption

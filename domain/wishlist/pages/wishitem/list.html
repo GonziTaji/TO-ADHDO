@@ -1,0 +1,16 @@
+{{ define "title" }}Wishitems list{{ end }}
+
+{{ define "content" }}
+
+<ul>
+    {{ range .List }}
+    <li>
+        <span>
+            {{.Id}} - {{.Name}}
+        </span>
+        <a href="{{.Id}}">Edit</a>
+        <button type="button" data-action="delete">Delete</a>
+    </li>
+    {{ end }}
+</ul>
+{{ end }}

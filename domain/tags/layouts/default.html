@@ -1,0 +1,23 @@
+{{ define "tags/default" }}
+<!doctype html>
+<html>
+
+<head>
+    <title>{{ .Title }}</title>
+    {{ template "meta_tags" . }}
+    {{ template "base_styles" . }}
+</head>
+
+<body>
+    <nav>
+        {{ template "nav" . }}
+    </nav>
+
+    <main>
+        {{ block "content" . }}{{ end }}
+    </main>
+
+</body>
+
+</html>
+{{ end }}

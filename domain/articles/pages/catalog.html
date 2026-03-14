@@ -1,0 +1,244 @@
+{{ define "title" }} Catalog {{ end }}
+
+{{ define "context-menu-button" }}
+<button class="menu-toggle-btn" popovertarget="catalog-menu-dialog">Catalog menu</button>
+{{ end }}
+
+{{ define "content" }}
+<dialog class="menu-dialog" id="catalog-menu-dialog" popover>
+    <div class="menu">
+        <div class="header">
+            <span>Catalog menu</span>
+            <button popovertarget="catalog-menu-dialog">&times;</button>
+        </div>
+
+        <hr />
+
+        <ul class="items">
+            <li>Coming soon</li>
+        </ul>
+    </div>
+</dialog>
+
+<div id="articles-catalog">
+    <h1>Catalog</h1>
+
+    <form id="search-form">
+        <fieldset>
+            <legend>Search</legend>
+            <input type="text" name="search" id="search" placeholder="search" value="{{ .Options.SearchTerm }}" />
+            <button>Search</button>
+            <button type="reset">Clear</button>
+        </fieldset>
+    </form>
+
+    <form id="filters-form">
+        <fieldset>
+            <legend>Filters</legend>
+            Tags:
+            {{ range .Tags }}
+            <label for="tags-filter-{{.Id}}">
+                <input type="checkbox" value="{{.Id}}" name="tags-filter" id="tags-filter-{{.Id}}" {{ if .Selected }}
+                    checked {{ end }} />
+                {{.Name}}
+            </label>
+            {{ end }}
+            <div>
+                <button>Apply filters</button>
+                <button type="reset">Reset</button>
+            </div>
+        </fieldset>
+    </form>
+
+    <ul class="articles-list">
+        {{ range .Articles}}
+        <li class="article-row">
+            <a href="/articles/{{.Id}}" class="article-image-wrapper">
+                <img src="{{.ThumbnailUrl}}" alt="{{.Name}}'s image" />
+            </a>
+
+            <div class="article-info">
+                <h3 class="article-name">
+                    <a href="/articles/{{.Id}}" class="article-name">{{ .Name }}</a>
+                </h3>
+
+                <ul class="article-tags-list">
+                    {{range .Tags}}
+                    <li class="article-tag">
+                        {{.Name}}
+                    </li>
+                    {{end}}
+                </ul>
+
+                <div>
+                    <span class="article-price">{{ format_clp .Price }}</span>
+                    <br />
+                    <span>
+                        <small>
+                            Ref. price:
+                            {{ if eq .ReferencePrice 0 }}-
+                            {{else}}{{ format_clp .ReferencePrice }}
+                            {{end}}
+                        </small>
+                    </span>
+                </div>
+            </div>
+        </li>
+        {{end}}
+    </ul>
+</div>
+
+<style>
+    #articles-catalog {
+        max-width: 1024px;
+        margin-inline: auto;
+
+        h1 {
+            font-size: var(--font-size-xl);
+        }
+
+        .articles-list {
+            --column-count: 1;
+
+            display: grid;
+            grid-template-columns: repeat(var(--column-count), 1fr);
+            gap: 1rem;
+            padding: 1rem;
+
+            @media(min-width: 425px) {
+                --column-count: 2;
+            }
+
+            @media(min-width: 768px) {
+                --column-count: 3;
+            }
+
+            @media(min-width: 1024px) {
+                --column-count: 4;
+            }
+        }
+
+        .article-row {
+            border-radius: 12px;
+            background: #FEF6FD;
+            box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            column-gap: var(--space-5);
+            padding: var(--space-4) var(--space-5);
+            gap: var(--space-4);
+
+            .article-name {
+                font-weight: 700;
+                color: hsl(0 0 30%);
+            }
+
+            .article-info {
+                flex-grow: 1;
+                gap: var(--space-3);
+                align-self: stretch;
+                display: flex;
+                flex-direction: column;
+                justify-content: end;
+            }
+
+            .article-name {
+                flex-grow: 1;
+            }
+
+            .article-price {
+                font-size: var(--fontsize-lg);
+                flex-grow: 1;
+                align-content: end;
+            }
+
+            .article-image-wrapper {
+                border: 1px solid oklch(80% 0 0);
+                overflow: hidden;
+                width: 100%;
+                height: 144px;
+
+                img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+            }
+
+            .article-tags-list {
+                display: flex;
+                gap: var(--space-1);
+                flex-wrap: wrap;
+
+                .article-tag {
+                    font-size: var(--fontsize-xs);
+                    padding: var(--space-1) var(--space-3);
+                    border-radius: 4px;
+                    background-color: var(--color-tertiary);
+                }
+            }
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('submit', (ev) => {
+        ev.preventDefault()
+
+        const form = ev.submitter.closest('form')
+
+        if (!form) return
+
+        const fd = new FormData(form)
+
+        switch (form.id) {
+            case "search-form": {
+                const url = new URL(location)
+                url.searchParams.set("s", fd.get('search'))
+                location = url
+                break;
+            }
+
+            case "filters-form": {
+                const url = new URL(location)
+                url.searchParams.delete('tags')
+
+                fd.getAll('tags-filter').forEach((tagid) => {
+                    url.searchParams.append("tags", tagid)
+                })
+
+                console.log(url.searchParams, url.searchParams.getAll('tags'))
+                location = url
+                break;
+            }
+        }
+    }, {capture: true})
+
+    document.addEventListener('reset', (ev) => {
+        ev.preventDefault()
+
+        const form = ev.target.closest('form')
+
+        if (!form) return
+
+        switch (form.id) {
+            case "search-form": {
+                const url = new URL(location)
+                url.searchParams.delete("s")
+                location = url
+                break;
+            }
+
+            case "filters-form": {
+                const url = new URL(location)
+                url.searchParams.delete('tags')
+                location = url
+                break;
+            }
+        }
+    }, {capture: true})
+
+</script>
+{{ end }}

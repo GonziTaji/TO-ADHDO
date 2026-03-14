@@ -7,6 +7,7 @@ type CatalogItem struct {
 	Tags              []struct{ Name string }
 	ThumbnailUrl      string
 	AvailableForTrade bool
+	ReferencePrice    int
 }
 
 type ArticleDetailTag struct {

@@ -10,11 +10,13 @@ import (
 func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	store := CreateStore(db)
 	tagsStore := tags.CreateStore(db)
-	controller := CreateController(store, &Views{}, tagsStore)
+	service := CreateService(store, &Views{}, tagsStore)
+	controller := CreateController(service)
 
 	// Catalog routes
 
 	group := router.Group("articles")
+	group.Static("/static", "domain/articles/static")
 
 	group.GET("/", controller.GetCatalogHandler)
 	group.GET("/:article_id", controller.GetHandler)
@@ -22,6 +24,7 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	// Admin routes
 
 	admin := router.Group("admin/" + group.BasePath())
+	admin.Static("/static", "domain/articles/static")
 
 	admin.GET("/", controller.GetListHandler)
 	admin.GET("/new", controller.GetFormHandler)
