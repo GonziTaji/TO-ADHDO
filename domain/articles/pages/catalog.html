@@ -34,15 +34,18 @@
 
     <form id="filters-form">
         <fieldset>
-            <legend>Filters</legend>
-            Tags:
-            {{ range .Tags }}
-            <label for="tags-filter-{{.Id}}">
-                <input type="checkbox" value="{{.Id}}" name="tags-filter" id="tags-filter-{{.Id}}" {{ if .Selected }}
-                    checked {{ end }} />
-                {{.Name}}
-            </label>
-            {{ end }}
+            <legend>Filter:</legend>
+            <div class="tags-options">
+                {{ range .Tags }}
+                <label for="tags-filter-{{.Id}}" class="tags-filter-label">
+                    <input type="checkbox" value="{{.Id}}" name="tags-filter" id="tags-filter-{{.Id}}" {{ if .Selected
+                        }} checked {{ end }} />
+                    {{.Name}}
+                </label>
+
+                {{ end }}
+            </div>
+
             <div>
                 <button>Apply filters</button>
                 <button type="reset">Reset</button>
@@ -58,12 +61,12 @@
             </a>
 
             <div class="article-info">
-                <div class="informative-tags">
-                    <span class="trade-tag" data-tradeable="{{.AvailableForTrade}}">
+                <div class="informative-badges">
+                    <span class="trade-badge" data-tradeable="{{.AvailableForTrade}}">
                         Permuta
                     </span>
 
-                    <span class="condition-tag" data-condition="{{.Condition.Slug}}">
+                    <span class="condition-badge" data-condition="{{.Condition.Slug}}">
                         {{.Condition.Label}}
                     </span>
                 </div>
@@ -105,6 +108,24 @@
 
         h1 {
             font-size: var(--font-size-xl);
+        }
+
+        #filters-form {
+            max-width: 100%;
+
+            fieldset:has(.tags-options) {
+                display: grid;
+
+                .tags-options {
+                    display: flex;
+                    overflow: auto;
+                    gap: var(--space-2);
+
+                    .tags-filter-label {
+                        display: inline-flex;
+                    }
+                }
+            }
         }
 
         .articles-list {
@@ -162,11 +183,11 @@
                 align-content: end;
             }
 
-            .informative-tags {
+            .informative-badges {
                 display: flex;
                 gap: var(--space-1);
 
-                .trade-tag {
+                .trade-badge {
                     font-size: var(--fontsize-sm);
                     border-radius: var(--radius-sm);
                     padding: var(--space-1) var(--space-2);
@@ -193,26 +214,26 @@
                     }
                 }
 
-                .condition-tag {
+                .condition-badge {
                     border: 1px solid #777777;
                     font-size: var(--fontsize-sm);
                     border-radius: var(--radius-sm);
                     padding: var(--space-1) var(--space-2);
 
                     &[data-condition="new"] {
-                        background: #16a34a;
+                        background: #16a34a44;
                     }
 
                     &[data-condition="semi-new"] {
-                        background: #84cc16;
+                        background: #84cc1644;
                     }
 
                     &[data-condition="used"] {
-                        background: #f59e0b;
+                        background: #f59e0b44;
                     }
 
                     &[data-condition="very-used"] {
-                        background: #ef4444;
+                        background: #ef444444;
                     }
                 }
             }
