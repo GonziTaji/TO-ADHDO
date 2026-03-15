@@ -58,6 +58,16 @@
             </a>
 
             <div class="article-info">
+                <div class="informative-tags">
+                    <span class="trade-tag" data-tradeable="{{.AvailableForTrade}}">
+                        Permuta
+                    </span>
+
+                    <span class="condition-tag" data-condition="{{.Condition.Slug}}">
+                        {{.Condition.Label}}
+                    </span>
+                </div>
+
                 <h3 class="article-name">
                     <a href="/articles/{{.Id}}" class="article-name">{{ .Name }}</a>
                 </h3>
@@ -125,7 +135,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            column-gap: var(--space-5);
             padding: var(--space-4) var(--space-5);
             gap: var(--space-4);
 
@@ -153,6 +162,61 @@
                 align-content: end;
             }
 
+            .informative-tags {
+                display: flex;
+                gap: var(--space-1);
+
+                .trade-tag {
+                    font-size: var(--fontsize-sm);
+                    border-radius: var(--radius-sm);
+                    padding: var(--space-1) var(--space-2);
+                    border: 1px solid #777777;
+
+                    &[data-tradeable="true"] {
+                        background: rgba(100, 255, 100, 0.4);
+                    }
+
+                    &[data-tradeable="false"] {
+                        color: rgba(0, 0, 0, 0.4);
+                        background: rgba(0, 0, 0, 0.1);
+                        position: relative;
+
+                        &:after {
+                            content: '';
+                            width: 90%;
+                            height: 2px;
+                            position: absolute;
+                            top: calc(50% - 1px);
+                            left: 5%;
+                            background: rgba(0, 0, 0, 0.4);
+                        }
+                    }
+                }
+
+                .condition-tag {
+                    border: 1px solid #777777;
+                    font-size: var(--fontsize-sm);
+                    border-radius: var(--radius-sm);
+                    padding: var(--space-1) var(--space-2);
+
+                    &[data-condition="new"] {
+                        background: #16a34a;
+                    }
+
+                    &[data-condition="semi-new"] {
+                        background: #84cc16;
+                    }
+
+                    &[data-condition="used"] {
+                        background: #f59e0b;
+                    }
+
+                    &[data-condition="very-used"] {
+                        background: #ef4444;
+                    }
+                }
+            }
+
             .article-image-wrapper {
                 border: 1px solid oklch(80% 0 0);
                 overflow: hidden;
@@ -173,10 +237,11 @@
                 flex-wrap: wrap;
 
                 .article-tag {
-                    font-size: var(--fontsize-xs);
+                    font-size: var(--fontsize-sm);
                     padding: var(--space-1) var(--space-3);
                     border-radius: 4px;
                     background-color: var(--color-tertiary);
+                    border: 1px solid #777777;
                 }
             }
         }

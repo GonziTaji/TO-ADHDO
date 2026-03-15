@@ -63,7 +63,11 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			COALESCE(p.price, 0),
 			COALESCE(tn.filename, 'no-thumbnail.png'),
 			a.available_for_trade,
-			a.reference_price
+			a.reference_price,
+			ac.id,
+			ac.slug,
+			COALESCE(ac.label, ac.slug),
+			ac.description
 
 		FROM articles a
 
@@ -74,7 +78,7 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			ON t.id = at.tag_id
 
 		LEFT JOIN (
-			SELECT article_id, filename, MAX(created_at)
+			SELECT article_id, filename, MIN(created_at)
 			FROM articles_images
 			GROUP BY article_id
 		) tn ON tn.article_id = a.id
@@ -84,6 +88,9 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			FROM articles_prices
 			GROUP BY article_id
 		) p ON p.article_id = a.id
+
+		LEFT JOIN articles_conditions ac
+			ON ac.id = a.condition_id
 
 		WHERE a.deleted_at IS NULL
 	`)
@@ -132,6 +139,8 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 		var scanned_item model.CatalogItem
 		var item_tag struct{ Name string }
 
+		condition := &scanned_item.Condition
+
 		if err := rows.Scan(
 			&scanned_item.Id,
 			&scanned_item.Name,
@@ -140,6 +149,10 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			&scanned_item.ThumbnailUrl,
 			&scanned_item.AvailableForTrade,
 			&scanned_item.ReferencePrice,
+			&condition.Id,
+			&condition.Slug,
+			&condition.Label,
+			&condition.Description,
 		); err != nil {
 			log.Printf("error scanning catalog item data from db %s\n", err.Error())
 			return nil, err
@@ -355,19 +368,26 @@ func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
 
 	query := `
 		SELECT
-			id,
-			name,
-			COALESCE(articles.description, ''),
-			available_for_trade,
+			a.id,
+			a.name,
+			COALESCE(a.description, ''),
+			a.available_for_trade,
 			(
-				CASE WHEN deleted_at IS NULL
+				CASE WHEN a.deleted_at IS NULL
 				THEN FALSE ELSE TRUE END
 			) as available
-		FROM articles
-		WHERE id = ?;
+			ac.id,
+			ac.slug,
+			ac.label,
+			ac.description
+		FROM articles a
+		JOIN articles_conditions ac ON ac.id = a.condition_id
+		WHERE a.id = ?;
 	`
 
 	article_row := s.db.QueryRow(query, article_id)
+
+	condition := &article_details.Condition
 
 	if err := article_row.Scan(
 		&article_details.Id,
@@ -375,6 +395,11 @@ func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
 		&article_details.Description,
 		&article_details.AvailableForTrade,
 		&article_details.IsDeleted,
+
+		condition.Id,
+		condition.Slug,
+		condition.Label,
+		condition.Description,
 	); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Printf("error scanning article details from db: %s\n", err.Error())
 		return article_details, err

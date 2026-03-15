@@ -7,12 +7,20 @@ type CatalogItem struct {
 	Tags              []struct{ Name string }
 	ThumbnailUrl      string
 	AvailableForTrade bool
+	Condition         ArticleCondition
 	ReferencePrice    int
 }
 
 type ArticleDetailTag struct {
 	Id   string
 	Name string
+}
+
+type ArticleCondition struct {
+	Id          string
+	Slug        string
+	Label       string
+	Description string
 }
 
 type ArticleDetails struct {
@@ -23,6 +31,7 @@ type ArticleDetails struct {
 	Price             int
 	ImagesUrls        []string
 	IsDeleted         bool
+	Condition         ArticleCondition
 	AvailableForTrade bool
 }
 

@@ -1,13 +1,27 @@
+CREATE TABLE if NOT EXISTS articles_conditions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,
+    label TEXT NULL,
+    description TEXT NOT NULL,
+
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
 CREATE TABLE if NOT EXISTS articles(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     description TEXT,
     attributes JSONB DEFAULT NULL,
     available_for_trade BOOLEAN NOT NULL DEFAULT FALSE,
+    reference_price INTEGER NOT NULL DEFAULT 0,
+    condition_id NOT NULL,
 
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    deleted_at TEXT DEFAULT NULL
+    deleted_at TEXT DEFAULT NULL,
+
+    FOREIGN KEY (condition_id) REFERENCES articles_conditions(id) ON DELETE SET NULL
 );
 
 CREATE TABLE if NOT EXISTS articles_images(
