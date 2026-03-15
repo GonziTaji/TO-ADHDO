@@ -1,107 +1,182 @@
 package server
 
 import (
+	"log"
+
 	"github.com/gin-contrib/multitemplate"
 	"github.com/yogusita/to-adhdo/server/funcmap"
 )
+
+var pages_base_files = []string{
+	"domain/shared/partials/base_styles.html",
+	"domain/shared/partials/meta_tags.html",
+	"domain/shared/partials/nav.html",
+}
+
+type TemplateRenderData struct {
+	name   string
+	path   string
+	layout string
+}
+
+var pages_render_data = []TemplateRenderData{
+	// wishlist templates
+	{name: "wishlist", path: "domain/wishlist/pages/wishlist.html", layout: "domain/wishlist/layouts/default.html"},
+	{name: "wishlist-admin", path: "domain/wishlist/pages/wishitem/list.html", layout: "domain/wishlist/layouts/default.html"},
+	{name: "wishlist-view", path: "domain/wishlist/pages/wishitem/view.html", layout: "domain/wishlist/layouts/default.html"},
+	{name: "wishlist-form", path: "domain/wishlist/pages/wishitem/form.html", layout: "domain/wishlist/layouts/default.html"},
+
+	// articles templates
+	{name: "articles-catalog", path: "domain/articles/pages/catalog.html", layout: "domain/articles/layouts/default.html"},
+	{name: "articles-view", path: "domain/articles/pages/view.html", layout: "domain/articles/layouts/default.html"},
+	{name: "articles-form", path: "domain/articles/pages/form.html", layout: "domain/articles/layouts/default.html"},
+	{name: "articles-list", path: "domain/articles/pages/list.html", layout: "domain/articles/layouts/default.html"},
+
+	// tags tempates
+	{name: "tags-list", path: "domain/tags/pages/list.html", layout: "domain/tags/layouts/default.html"},
+}
+
+var components_render_data = []TemplateRenderData{
+	{name: "catalog-list", path: "domain/articles/components/catalog_list.html"},
+}
 
 func loadTemplates() multitemplate.Renderer {
 	r := multitemplate.NewRenderer()
 
 	fm := funcmap.GetFuncMap()
 
-	// Wishlist templates
-	r.AddFromFilesFuncs(
-		"wishlist",
-		fm,
-		"domain/wishlist/layouts/default.html",
-		"domain/wishlist/pages/wishlist.html",
-		"domain/shared/partials/base_styles.html",
-		"domain/shared/partials/meta_tags.html",
-		"domain/shared/partials/nav.html",
-	)
+	component_files := []string{}
 
-	r.AddFromFilesFuncs(
-		"wishlist-admin",
-		fm,
-		"domain/wishlist/layouts/default.html",
-		"domain/wishlist/pages/wishitem/list.html",
-		"domain/shared/partials/base_styles.html",
-		"domain/shared/partials/meta_tags.html",
-		"domain/shared/partials/nav.html",
-	)
+	for _, component_data := range components_render_data {
+		component_files = append(component_files, component_data.path)
+	}
 
-	r.AddFromFilesFuncs(
-		"wishlist-view",
-		fm,
-		"domain/wishlist/layouts/default.html",
-		"domain/wishlist/pages/wishitem/view.html",
-		"domain/shared/partials/base_styles.html",
-		"domain/shared/partials/meta_tags.html",
-		"domain/shared/partials/nav.html",
-	)
+	for _, page_data := range pages_render_data {
+		log.Printf("[TEMPLATE][PAGE] Loading template `%s`\n", page_data.name)
 
-	r.AddFromFilesFuncs(
-		"wishlist-form",
-		fm,
-		"domain/wishlist/layouts/default.html",
-		"domain/wishlist/pages/wishitem/form.html",
-		"domain/shared/partials/base_styles.html",
-		"domain/shared/partials/meta_tags.html",
-		"domain/shared/partials/nav.html",
-	)
+		files := []string{
+			page_data.path,
+		}
 
-	// Articles templates
-	r.AddFromFilesFuncs(
-		"articles-catalog",
-		fm,
-		"domain/articles/layouts/default.html",
-		"domain/articles/pages/catalog.html",
-		"domain/shared/partials/base_styles.html",
-		"domain/shared/partials/meta_tags.html",
-		"domain/shared/partials/nav.html",
-	)
+		if len(page_data.layout) > 0 {
+			files = append([]string{page_data.layout}, files...)
+		}
 
-	r.AddFromFilesFuncs(
-		"articles-view",
-		fm,
-		"domain/articles/layouts/default.html",
-		"domain/articles/pages/view.html",
-		"domain/shared/partials/base_styles.html",
-		"domain/shared/partials/meta_tags.html",
-		"domain/shared/partials/nav.html",
-	)
+		files = append(files, append(component_files, pages_base_files...)...)
 
-	r.AddFromFilesFuncs(
-		"articles-form",
-		fm,
-		"domain/articles/layouts/default.html",
-		"domain/articles/pages/form.html",
-		"domain/shared/partials/base_styles.html",
-		"domain/shared/partials/meta_tags.html",
-		"domain/shared/partials/nav.html",
-	)
+		log.Printf("FILES:\n")
+		for i, file := range files {
+			log.Printf("[TEMPLATE][PAGE][FILE %d] %s\n", i, file)
+		}
 
-	r.AddFromFilesFuncs(
-		"articles-list",
-		fm,
-		"domain/articles/layouts/default.html",
-		"domain/articles/pages/list.html",
-		"domain/shared/partials/base_styles.html",
-		"domain/shared/partials/meta_tags.html",
-		"domain/shared/partials/nav.html",
-	)
+		r.AddFromFilesFuncs(
+			page_data.name,
+			fm,
+			files...,
+		)
 
-	// Tags templates
-	r.AddFromFilesFuncs(
-		"tags-list",
-		fm,
-		"domain/tags/layouts/default.html",
-		"domain/tags/pages/list.html",
-		"domain/shared/partials/base_styles.html",
-		"domain/shared/partials/meta_tags.html",
-		"domain/shared/partials/nav.html",
-	)
+		log.Println("")
+	}
+
+	for _, td := range components_render_data {
+		log.Printf("[TEMPLATE][COMPONENT] Loading template `%s` from path: %s\n", td.name, td.path)
+		r.AddFromFilesFuncs(td.name, fm, td.path)
+	}
 
 	return r
 }
+
+/*
+-	// Wishlist templates
+-	r.AddFromFilesFuncs(
+-		"wishlist",
+-		fm,
+-		"domain/wishlist/layouts/default.html",
+-		"domain/wishlist/pages/wishlist.html",
+-		"domain/shared/partials/base_styles.html",
+-		"domain/shared/partials/meta_tags.html",
+-		"domain/shared/partials/nav.html",
+-	)
+-
+-	r.AddFromFilesFuncs(
+-		"wishlist-admin",
+-		fm,
+-		"domain/wishlist/layouts/default.html",
+-		"domain/wishlist/pages/wishitem/list.html",
+-		"domain/shared/partials/base_styles.html",
+-		"domain/shared/partials/meta_tags.html",
+-		"domain/shared/partials/nav.html",
+-	)
+-
+-	r.AddFromFilesFuncs(
+-		"wishlist-view",
+-		fm,
+-		"domain/wishlist/layouts/default.html",
+-		"domain/wishlist/pages/wishitem/view.html",
+-		"domain/shared/partials/base_styles.html",
+-		"domain/shared/partials/meta_tags.html",
+-		"domain/shared/partials/nav.html",
+-	)
+-
+-	r.AddFromFilesFuncs(
+-		"wishlist-form",
+-		fm,
+-		"domain/wishlist/layouts/default.html",
+-		"domain/wishlist/pages/wishitem/form.html",
+-		"domain/shared/partials/base_styles.html",
+-		"domain/shared/partials/meta_tags.html",
+-		"domain/shared/partials/nav.html",
+-	)
+-
+-	// Articles templates
+-	r.AddFromFilesFuncs(
+-		"articles-catalog",
+-		fm,
+-		"domain/articles/layouts/default.html",
+-		"domain/articles/pages/catalog.html",
+-		"domain/shared/partials/base_styles.html",
+-		"domain/shared/partials/meta_tags.html",
+-		"domain/shared/partials/nav.html",
+-	)
+-
+-	r.AddFromFilesFuncs(
+-		"articles-view",
+-		fm,
+-		"domain/articles/layouts/default.html",
+-		"domain/articles/pages/view.html",
+-		"domain/shared/partials/base_styles.html",
+-		"domain/shared/partials/meta_tags.html",
+-		"domain/shared/partials/nav.html",
+-	)
+-
+-	r.AddFromFilesFuncs(
+-		"articles-form",
+-		fm,
+-		"domain/articles/layouts/default.html",
+-		"domain/articles/pages/form.html",
+-		"domain/shared/partials/base_styles.html",
+-		"domain/shared/partials/meta_tags.html",
+-		"domain/shared/partials/nav.html",
+-	)
+-
+-	r.AddFromFilesFuncs(
+-		"articles-list",
+-		fm,
+-		"domain/articles/layouts/default.html",
+-		"domain/articles/pages/list.html",
+-		"domain/shared/partials/base_styles.html",
+-		"domain/shared/partials/meta_tags.html",
+-		"domain/shared/partials/nav.html",
+-	)
+-
+-	// Tags templates
+-	r.AddFromFilesFuncs(
+-		"tags-list",
+-		fm,
+-		"domain/tags/layouts/default.html",
+-		"domain/tags/pages/list.html",
+-		"domain/shared/partials/base_styles.html",
+-		"domain/shared/partials/meta_tags.html",
+-		"domain/shared/partials/nav.html",
+-	)
+*/
