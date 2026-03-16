@@ -375,7 +375,7 @@ func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
 			(
 				CASE WHEN a.deleted_at IS NULL
 				THEN FALSE ELSE TRUE END
-			) as available
+			) as available,
 			ac.id,
 			ac.slug,
 			ac.label,
@@ -396,10 +396,10 @@ func (s *Store) GetDetails(article_id string) (model.ArticleDetails, error) {
 		&article_details.AvailableForTrade,
 		&article_details.IsDeleted,
 
-		condition.Id,
-		condition.Slug,
-		condition.Label,
-		condition.Description,
+		&condition.Id,
+		&condition.Slug,
+		&condition.Label,
+		&condition.Description,
 	); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Printf("error scanning article details from db: %s\n", err.Error())
 		return article_details, err

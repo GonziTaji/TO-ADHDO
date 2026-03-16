@@ -55,3 +55,22 @@ func (c *Controller) GetCatalogHandler(ctx *gin.Context) {
 
 	ctx.HTML(http.StatusOK, "articles-catalog", catalogData)
 }
+
+func (c *Controller) GetCatalogListHandler(ctx *gin.Context) {
+	var options model.CatalogFilterOptions
+	if err := ctx.Bind(&options); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	items, err := c.service.CatalogList(options)
+
+	if err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	log.Printf("asdfasdfas\n")
+
+	ctx.HTML(http.StatusOK, "catalog-list", items)
+}

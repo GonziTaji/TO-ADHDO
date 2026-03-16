@@ -1,5 +1,5 @@
-{{define "catalog-list"}}
-<ul class="articles-list">
+{{block "catalog-list" .}}
+<ul id="catalog-list">
     {{ range .}}
     <li class="article-row">
         <a href="/articles/{{.Id}}" class="article-image-wrapper">

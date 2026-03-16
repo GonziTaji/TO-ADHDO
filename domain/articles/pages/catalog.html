@@ -4,6 +4,10 @@
 <button class="menu-toggle-btn" popovertarget="catalog-menu-dialog">Catalog menu</button>
 {{ end }}
 
+{{ define "head" }}
+<script src="/catalog/static/js/catalog.js" type="module"></script>
+{{ end }}
+
 {{ define "content" }}
 <dialog class="menu-dialog" id="catalog-menu-dialog" popover>
     <div class="menu">
@@ -23,32 +27,24 @@
 <div id="articles-catalog">
     <h1>Catalog</h1>
 
-    <form id="search-form">
-        <fieldset>
-            <legend>Search</legend>
-            <input type="text" name="search" id="search" placeholder="search" value="{{ .Options.SearchTerm }}" />
-            <button>Search</button>
-            <button type="reset">Clear</button>
-        </fieldset>
-    </form>
-
     <form id="filters-form">
         <fieldset>
-            <legend>Filter:</legend>
+            <legend>Search:</legend>
+            <input type="text" name="search" id="search" placeholder="Search" value="{{ .Options.SearchTerm }}" />
+            <button>Search</button>
+        </fieldset>
+
+        <fieldset>
+            <legend>Tags:</legend>
             <div class="tags-options">
                 {{ range .Tags }}
                 <label for="tags-filter-{{.Id}}" class="tags-filter-label">
-                    <input type="checkbox" value="{{.Id}}" name="tags-filter" id="tags-filter-{{.Id}}" {{ if .Selected
-                        }} checked {{ end }} />
+                    <input type="checkbox" value="{{.Id}}" name="tags" id="tags-filter-{{.Id}}" {{ if .Selected }}
+                        checked {{ end }} />
                     {{.Name}}
                 </label>
 
                 {{ end }}
-            </div>
-
-            <div>
-                <button>Apply filters</button>
-                <button type="reset">Reset</button>
             </div>
         </fieldset>
     </form>
@@ -83,7 +79,7 @@
             }
         }
 
-        .articles-list {
+        #catalog-list {
             --column-count: 1;
 
             display: grid;
@@ -223,63 +219,4 @@
         }
     }
 </style>
-
-<script>
-    document.addEventListener('submit', (ev) => {
-        ev.preventDefault()
-
-        const form = ev.submitter.closest('form')
-
-        if (!form) return
-
-        const fd = new FormData(form)
-
-        switch (form.id) {
-            case "search-form": {
-                const url = new URL(location)
-                url.searchParams.set("s", fd.get('search'))
-                location = url
-                break;
-            }
-
-            case "filters-form": {
-                const url = new URL(location)
-                url.searchParams.delete('tags')
-
-                fd.getAll('tags-filter').forEach((tagid) => {
-                    url.searchParams.append("tags", tagid)
-                })
-
-                console.log(url.searchParams, url.searchParams.getAll('tags'))
-                location = url
-                break;
-            }
-        }
-    }, {capture: true})
-
-    document.addEventListener('reset', (ev) => {
-        ev.preventDefault()
-
-        const form = ev.target.closest('form')
-
-        if (!form) return
-
-        switch (form.id) {
-            case "search-form": {
-                const url = new URL(location)
-                url.searchParams.delete("s")
-                location = url
-                break;
-            }
-
-            case "filters-form": {
-                const url = new URL(location)
-                url.searchParams.delete('tags')
-                location = url
-                break;
-            }
-        }
-    }, {capture: true})
-
-</script>
 {{ end }}

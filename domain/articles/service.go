@@ -22,6 +22,10 @@ func (s *Service) GetDetails(articleID string) (model.ArticleDetails, error) {
 	return s.store.GetDetails(articleID)
 }
 
+func (s *Service) CatalogList(options model.CatalogFilterOptions) ([]model.CatalogItem, error) {
+	return s.store.Catalog(options)
+}
+
 func (s *Service) Catalog(options model.CatalogFilterOptions) (model.CatalogData, error) {
 	catalogItems, err := s.store.Catalog(options)
 

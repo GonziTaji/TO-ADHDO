@@ -15,15 +15,16 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 
 	// Catalog routes
 
-	group := router.Group("articles")
+	group := router.Group("catalog")
 	group.Static("/static", "domain/articles/static")
 
 	group.GET("/", controller.GetCatalogHandler)
+	group.GET("/list", controller.GetCatalogListHandler)
 	group.GET("/:article_id", controller.GetHandler)
 
 	// Admin routes
 
-	admin := router.Group("admin/" + group.BasePath())
+	admin := router.Group("admin/articles")
 	admin.Static("/static", "domain/articles/static")
 
 	admin.GET("/", controller.GetListHandler)

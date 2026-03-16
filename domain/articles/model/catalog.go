@@ -36,7 +36,7 @@ type ArticleDetails struct {
 }
 
 type CatalogFilterOptions struct {
-	SearchTerm        string   `form:"s"`
+	SearchTerm        string   `form:"search"`
 	TagsIdsFilter     []string `form:"tags"`
 	AvailableForTrade bool     `form:"trade"`
 }

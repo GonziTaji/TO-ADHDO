@@ -5,6 +5,8 @@
     <title>{{ block "title" . }}{{ end }}</title>
     {{ template "meta_tags" . }}
     {{ template "base_styles" . }}
+
+    {{ block "head" . }}{{end}}
 </head>
 
 <body>
