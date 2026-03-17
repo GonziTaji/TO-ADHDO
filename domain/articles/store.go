@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -53,13 +52,50 @@ func (s *Store) WithTx(fn func(tx *sql.Tx) error) error {
 
 func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem, error) {
 	var queryargs shared.QueryArgs
-	var query_sb strings.Builder
 
-	query_sb.WriteString(`
+	tags_count := len(options.TagsIdsFilter)
+
+	tags_templates := strings.Repeat("?,", tags_count)
+	tags_templates = strings.TrimSuffix(tags_templates, ",")
+
+	for _, tagid := range options.TagsIdsFilter {
+		queryargs = append(queryargs, tagid)
+	}
+
+	search_filter := "%" + options.SearchTerm + "%"
+	limit := 100
+
+	queryargs = append(queryargs,
+		len(options.SearchTerm),
+		search_filter,
+		limit,
+	)
+
+	query := fmt.Sprintf(`
+		WITH filtered_articles AS (
+			-- No tag filters: return all articles
+			SELECT a.id
+			FROM articles a
+			WHERE a.deleted_at IS NULL
+			-- var: tags count
+			AND %d = 0
+
+			UNION ALL
+
+			-- Tag filters: return only matching articles
+			SELECT DISTINCT a.id
+			FROM articles a
+			JOIN articles_tags at_filter ON at_filter.article_id = a.id
+			WHERE a.deleted_at IS NULL
+			-- var: tags count
+			AND %d > 0
+			-- var: tags templates
+			AND at_filter.tag_id IN (%s)
+		)
 		SELECT
 			a.id,
 			a.name,
-			COALESCE(t.name, '') as tag_name,
+			COALESCE(t.name, '') AS tag_name,
 			COALESCE(p.price, 0),
 			COALESCE(tn.filename, 'no-thumbnail.png'),
 			a.available_for_trade,
@@ -68,66 +104,41 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			ac.slug,
 			COALESCE(ac.label, ac.slug),
 			ac.description
-
-		FROM articles a
-
-		LEFT JOIN articles_tags at
-			ON at.article_id = a.id
-
-		LEFT JOIN tags t
-			ON t.id = at.tag_id
-
+		FROM filtered_articles fa
+		JOIN articles a ON a.id = fa.id
+		LEFT JOIN articles_tags at_all ON at_all.article_id = a.id
+		LEFT JOIN tags t ON t.id = at_all.tag_id
 		LEFT JOIN (
 			SELECT article_id, filename, MIN(created_at)
 			FROM articles_images
 			GROUP BY article_id
 		) tn ON tn.article_id = a.id
-
 		LEFT JOIN (
 			SELECT article_id, price, MAX(created_at)
 			FROM articles_prices
 			GROUP BY article_id
 		) p ON p.article_id = a.id
+		LEFT JOIN articles_conditions ac ON ac.id = a.condition_id
+		-- var: search term length || search filter pattern
+		WHERE (? = 0 OR a.name LIKE ?)
+		-- var: limit
+		LIMIT ?;
+		`,
+		tags_count,
+		tags_count,
+		tags_templates,
+	)
 
-		LEFT JOIN articles_conditions ac
-			ON ac.id = a.condition_id
+	items := []model.CatalogItem{}
+	items_by_id := make(map[string]*model.CatalogItem)
 
-		WHERE a.deleted_at IS NULL
-	`)
-
-	if len(options.SearchTerm) > 0 {
-		queryargs = append(queryargs, "%"+options.SearchTerm+"%")
-		query_sb.WriteString("\nAND a.name LIKE ?")
-	}
-
-	if len(options.TagsIdsFilter) > 0 {
-		query_sb.WriteString("\nAND t.id IN (")
-		for i, tagid := range options.TagsIdsFilter {
-			if i == 0 {
-				query_sb.WriteString("?")
-			} else {
-				query_sb.WriteString(",?")
-			}
-
-			log.Printf("found tag id for filter: %s\n", tagid)
-
-			queryargs = append(queryargs, tagid)
-		}
-		query_sb.WriteString(")")
-	}
-
-	queryargs = append(queryargs, 100)
-	query_sb.WriteString("\nLIMIT ?;")
-
-	items_by_id := make(map[string]model.CatalogItem)
-
-	log.Printf("query: \n%s\n", query_sb.String())
-	log.Printf("\nargs: \n")
+	log.Printf("query: \n%s\n", query)
+	log.Printf("args: \n")
 	for _, arg := range queryargs {
 		log.Printf("- %v\n", arg)
 	}
 
-	rows, err := s.db.Query(query_sb.String(), queryargs...)
+	rows, err := s.db.Query(query, queryargs...)
 
 	if err != nil {
 		log.Printf("error getting catalog items: %s\n", err.Error())
@@ -135,7 +146,6 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 	}
 
 	for rows.Next() {
-		log.Println("in article row for catalog")
 		var scanned_item model.CatalogItem
 		var item_tag struct{ Name string }
 
@@ -158,19 +168,19 @@ func (s *Store) Catalog(options model.CatalogFilterOptions) ([]model.CatalogItem
 			return nil, err
 		}
 
-		if items_by_id[scanned_item.Id].Id == "" {
+		if items_by_id[scanned_item.Id] == nil {
 			scanned_item.ThumbnailUrl = uploads.GetFilePublicUrl(articles_images_bucket, scanned_item.ThumbnailUrl)
-			items_by_id[scanned_item.Id] = scanned_item
+
+			items_by_id[scanned_item.Id] = &scanned_item
+			items = append(items, scanned_item)
 		}
 
 		if item_tag.Name != "" {
 			item := items_by_id[scanned_item.Id]
 			item.Tags = append(item.Tags, item_tag)
-			items_by_id[scanned_item.Id] = item
 		}
 	}
 
-	items := slices.Collect(maps.Values(items_by_id))
 	log.Printf("\n\nitems: %v\n\n", items)
 
 	return items, nil

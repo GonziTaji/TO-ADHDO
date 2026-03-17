@@ -4,7 +4,7 @@
         Menu
     </button>
 
-    {{ block "context-menu-button" . }}{{end}}
+    <h1>{{ block "nav-title" . }}{{end}}</h1>
 </nav>
 
 <dialog class="menu-dialog" id="main-menu-dialog" popover>
@@ -18,37 +18,12 @@
 
         <ul class="items">
             <li><a href="/">Inicio</a></li>
-            <li><a href="/articles">Mi catalogo</a></li>
+            <li><a href="/catalog">Mi catalogo</a></li>
             <li><a href="/wishlist">Mis deseos</a></li>
             <li><a href="/articles">Sobre mi</a></li>
         </ul>
     </div>
 </dialog>
-
-<script>
-    document.addEventListener('click', ev => {
-        const btn = ev.target.closest('[data-action]')
-        console.log("button", btn)
-
-        if (!btn) return
-
-        const {action, menu_collapsed} = btn.dataset
-
-        if (!action) return
-
-        switch (action) {
-            case 'toggle-menu': {
-                const {menu_collapsed} = btn.dataset
-                const isCurrentlyCollapsed = menu_collapsed.toUpperCase() === (true).toString().toUpperCase()
-
-                document.querySelectorAll('[data-menu_collapsed').forEach(el => {
-                    el.dataset.menu_collapsed = !isCurrentlyCollapsed
-                })
-                break
-            }
-        }
-    })
-</script>
 
 <style>
     #main-nav {
@@ -57,6 +32,10 @@
         padding: 12px 8px;
         align-items: center;
         background-color: #3E1923;
+
+        h1 {
+            color: white;
+        }
     }
 </style>
 

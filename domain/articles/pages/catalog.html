@@ -1,32 +1,13 @@
 {{ define "title" }} Catalog {{ end }}
 
-{{ define "context-menu-button" }}
-<button class="menu-toggle-btn" popovertarget="catalog-menu-dialog">Catalog menu</button>
-{{ end }}
-
 {{ define "head" }}
 <script src="/catalog/static/js/catalog.js" type="module"></script>
 {{ end }}
 
+{{ define "nav-title" }}Catalog{{ end }}
+
 {{ define "content" }}
-<dialog class="menu-dialog" id="catalog-menu-dialog" popover>
-    <div class="menu">
-        <div class="header">
-            <span>Catalog menu</span>
-            <button popovertarget="catalog-menu-dialog">&times;</button>
-        </div>
-
-        <hr />
-
-        <ul class="items">
-            <li>Coming soon</li>
-        </ul>
-    </div>
-</dialog>
-
 <div id="articles-catalog">
-    <h1>Catalog</h1>
-
     <form id="filters-form">
         <fieldset>
             <legend>Search:</legend>
