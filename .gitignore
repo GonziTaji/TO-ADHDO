@@ -1,2 +1,4 @@
+sbx
 
-sbx/*
+web/node_modules
+web/dist

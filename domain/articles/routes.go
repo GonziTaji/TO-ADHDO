@@ -2,37 +2,65 @@ package articles
 
 import (
 	"database/sql"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yogusita/to-adhdo/domain/tags"
 )
 
-func RegisterRoutes(router *gin.Engine, db *sql.DB) {
+// PageHandler is a function that serves an HTML page. Injected by the server layer.
+type PageHandler = gin.HandlerFunc
+
+func RegisterRoutes(router *gin.Engine, db *sql.DB, servePage func(string) gin.HandlerFunc) {
 	store := CreateStore(db)
 	tagsStore := tags.CreateStore(db)
 	service := CreateService(store, &Views{}, tagsStore)
 	controller := CreateController(service)
 
-	// Catalog routes
+	// -----------------------------------------------------------------------
+	// Static assets for old template-based pages (kept for compatibility)
+	// -----------------------------------------------------------------------
+	router.Group("catalog").Static("/static", "domain/articles/static")
+	router.Group("admin/articles").Static("/static", "domain/articles/static")
 
-	group := router.Group("catalog")
-	group.Static("/static", "domain/articles/static")
+	// -----------------------------------------------------------------------
+	// Page routes – serve built React HTML files
+	// -----------------------------------------------------------------------
+	router.GET("/catalog", servePage("articles/catalog.html"))
+	router.GET("/catalog/:article_id", servePage("articles/view.html"))
 
-	group.GET("/", controller.GetCatalogHandler)
-	group.GET("/list", controller.GetCatalogListHandler)
-	group.GET("/:article_id", controller.GetHandler)
+	router.GET("/articles", servePage("articles/list.html"))
+	router.GET("/articles/new", servePage("articles/form.html"))
+	router.GET("/articles/:article_id/edit", servePage("articles/form.html"))
 
-	// Admin routes
+	// -----------------------------------------------------------------------
+	// Backward-compatibility redirects
+	// -----------------------------------------------------------------------
+	router.GET("/catalog/", func(ctx *gin.Context) {
+		ctx.Redirect(http.StatusMovedPermanently, "/catalog")
+	})
+	router.GET("/admin/articles/", func(ctx *gin.Context) {
+		ctx.Redirect(http.StatusMovedPermanently, "/articles")
+	})
+	router.GET("/admin/articles/new", func(ctx *gin.Context) {
+		ctx.Redirect(http.StatusMovedPermanently, "/articles/new")
+	})
+	router.GET("/admin/articles/:article_id/edit", func(ctx *gin.Context) {
+		id := ctx.Param("article_id")
+		ctx.Redirect(http.StatusMovedPermanently, "/articles/"+id+"/edit")
+	})
 
-	admin := router.Group("admin/articles")
-	admin.Static("/static", "domain/articles/static")
+	// -----------------------------------------------------------------------
+	// JSON API routes
+	// -----------------------------------------------------------------------
+	api := router.Group("/api")
 
-	admin.GET("/", controller.GetListHandler)
-	admin.GET("/new", controller.GetFormHandler)
-	admin.GET("/:article_id/edit", controller.GetFormHandler)
+	api.GET("/catalog", controller.ApiCatalogHandler)
 
-	admin.POST("/", controller.CreateHandler)
-	admin.POST("/uploads", controller.UploadImageHandler)
-	admin.PUT("/:article_id", controller.UpdateHandler)
-	admin.DELETE("/:article_id", controller.DeleteHandler)
+	api.GET("/articles", controller.ApiListHandler)
+	api.GET("/articles/:article_id", controller.ApiGetHandler)
+	api.POST("/articles", controller.ApiCreateHandler)
+	api.PUT("/articles/:article_id", controller.ApiUpdateHandler)
+	api.DELETE("/articles/:article_id", controller.ApiDeleteHandler)
+	api.POST("/articles/uploads", controller.ApiUploadImageHandler)
 }

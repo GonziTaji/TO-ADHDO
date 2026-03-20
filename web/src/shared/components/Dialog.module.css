@@ -1,0 +1,14 @@
+.dialog {
+  padding: 1.5rem;
+  border: 1px solid #999;
+  border-radius: 8px;
+  min-width: 300px;
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.content {
+  margin: 1rem 0;
+}

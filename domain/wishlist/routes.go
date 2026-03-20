@@ -2,30 +2,42 @@ package wishlist
 
 import (
 	"database/sql"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(router *gin.Engine, db *sql.DB) {
+func RegisterRoutes(router *gin.Engine, db *sql.DB, servePage func(string) gin.HandlerFunc) {
 	store := CreateStore(db)
 	controller := CreateController(&store)
 
-	public_group := router.Group("wishlist")
+	// -----------------------------------------------------------------------
+	// Page route
+	// -----------------------------------------------------------------------
+	router.GET("/wishlist", servePage("wishlist/wishlist.html"))
 
-	public_group.GET("/", controller.GetListHandler)
+	// Backward-compatibility redirect
+	router.GET("/wishlist/", func(ctx *gin.Context) {
+		ctx.Redirect(http.StatusMovedPermanently, "/wishlist")
+	})
 
-	api_group := router.Group("api/" + public_group.BasePath())
+	// -----------------------------------------------------------------------
+	// JSON API routes
+	// -----------------------------------------------------------------------
+	api := router.Group("/api/wishlist")
 
-	api_group.GET("/preview", controller.GetPreview)
+	api.GET("", controller.ApiListHandler)
+	api.GET("/preview", controller.GetPreview)
 
-	admin_group := router.Group("admin/" + public_group.BasePath())
+	// -----------------------------------------------------------------------
+	// Admin routes (kept for compatibility, HTML-rendered)
+	// -----------------------------------------------------------------------
+	admin := router.Group("admin/wishlist")
 
-	admin_group.GET("/", controller.GetAdminListHandler)
-
-	admin_group.GET("/new", controller.GetFormHandler)
-	admin_group.POST("/new", controller.CreateHandler)
-
-	admin_group.GET("/:id", controller.GetFormHandler)
-	admin_group.PUT("/:id", controller.UpdateHandler)
-	admin_group.DELETE("/:id", controller.DeleteHandler)
+	admin.GET("/", controller.GetAdminListHandler)
+	admin.GET("/new", controller.GetFormHandler)
+	admin.POST("/new", controller.CreateHandler)
+	admin.GET("/:id", controller.GetFormHandler)
+	admin.PUT("/:id", controller.UpdateHandler)
+	admin.DELETE("/:id", controller.DeleteHandler)
 }

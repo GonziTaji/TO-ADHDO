@@ -54,9 +54,9 @@ func newRouter(db *sql.DB) *gin.Engine {
 
 	registerStaticRoutes(router)
 
-	articles.RegisterRoutes(router, db)
-	tags.RegisterRoutes(router, db)
-	wishlist.RegisterRoutes(router, db)
+	articles.RegisterRoutes(router, db, ServePage)
+	tags.RegisterRoutes(router, db, ServePage)
+	wishlist.RegisterRoutes(router, db, ServePage)
 	shared.RegisterRoutes(router, db)
 
 	router.Use(func(ctx *gin.Context) {

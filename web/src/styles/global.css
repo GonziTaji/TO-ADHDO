@@ -1,0 +1,20 @@
+:root {
+  --fontsize-xs: 0.75rem;
+  --fontsize-sm: 0.875rem;
+  --fontsize-lg: 1.25rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+}

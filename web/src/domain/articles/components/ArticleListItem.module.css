@@ -1,0 +1,44 @@
+.row {
+  padding: 12px;
+  display: grid;
+  grid-template-areas:
+    "name buttons"
+    "tags buttons";
+  gap: 8px;
+}
+
+.row:not(:last-child) {
+  border-bottom: 1px solid red;
+}
+
+.name {
+  grid-area: name;
+  display: block;
+}
+
+.tagsContainer {
+  grid-area: tags;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow: auto;
+  position: relative;
+}
+
+.tagsList {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+}
+
+.tagsList li {
+  padding: 2px 8px;
+  border: 1px solid #ccc;
+}
+
+.buttons {
+  grid-area: buttons;
+  justify-self: end;
+  display: flex;
+  gap: 8px;
+}

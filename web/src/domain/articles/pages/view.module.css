@@ -1,0 +1,56 @@
+.details {
+  padding: 0.4rem 0.8rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.name {
+  font-size: var(--fontsize-lg);
+}
+
+.imagesContainer {
+  padding-block: 0.2rem;
+}
+
+.display {
+  position: relative;
+  height: 300px;
+}
+
+.displayImage {
+  position: absolute;
+  width: 100%;
+  height: 300px;
+  object-fit: contain;
+  transition: opacity 400ms;
+}
+
+.miniatures {
+  display: flex;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.miniatures button {
+  border: none;
+  background: none;
+  outline: none;
+  cursor: pointer;
+}
+
+.miniatures button:focus {
+  outline: 2px solid #007bff;
+}
+
+.miniatures img {
+  width: 40px;
+  height: 60px;
+  object-fit: cover;
+}
+
+.description {
+  padding: 1.2rem 0.6rem;
+  font-size: var(--fontsize-sm);
+  border-radius: 8px;
+  background: #f0f0f0;
+}
