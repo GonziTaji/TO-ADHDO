@@ -53,7 +53,7 @@ func (c *Controller) GetCatalogHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "articles-catalog", catalogData)
+	ctx.HTML(http.StatusOK, "articles/www/catalog/pages", catalogData)
 }
 
 func (c *Controller) GetCatalogListHandler(ctx *gin.Context) {

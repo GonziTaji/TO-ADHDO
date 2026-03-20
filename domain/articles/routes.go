@@ -2,6 +2,8 @@ package articles
 
 import (
 	"database/sql"
+	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yogusita/to-adhdo/domain/tags"
@@ -16,16 +18,19 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	// Catalog routes
 
 	group := router.Group("catalog")
-	group.Static("/static", "domain/articles/static")
 
 	group.GET("/", controller.GetCatalogHandler)
 	group.GET("/list", controller.GetCatalogListHandler)
 	group.GET("/:article_id", controller.GetHandler)
 
+	static := group.Group("resources")
+	static.Use(blockExtensions(".html"))
+	static.Static("/", "domain/articles/www/")
+
 	// Admin routes
 
 	admin := router.Group("admin/articles")
-	admin.Static("/static", "domain/articles/static")
+	admin.Static("/static", "domain/articles/www/")
 
 	admin.GET("/", controller.GetListHandler)
 	admin.GET("/new", controller.GetFormHandler)
@@ -35,4 +40,19 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	admin.POST("/uploads", controller.UploadImageHandler)
 	admin.PUT("/:article_id", controller.UpdateHandler)
 	admin.DELETE("/:article_id", controller.DeleteHandler)
+}
+
+func blockExtensions(exts ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path := c.Request.URL.Path
+
+		for _, ext := range exts {
+			if strings.HasSuffix(path, ext) {
+				c.AbortWithStatus(http.StatusNotFound)
+				return
+			}
+		}
+
+		c.Next()
+	}
 }

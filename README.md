@@ -24,15 +24,18 @@ To avoid losing direction of this project's goals, some dev restrictions are def
 ### DO
 
 - Compose the web pages using html/templates' block and template features
+- Treat hypermedia as the application state
+- Use go packages 
 
 ### DON'T
 
-- Install golang packages besides go-gin unless strictly necessary
-- Install/import javascript libraries unless strictly necessary
+- Import javascript libraries unless strictly necessary
+- Install golang packages besides the obv . Stay away from "frameworks" and leaky abstractions
+- 
 
 ### AVOID
 
-- manipulating the DOM with js scripts
+- heavy DOM manipulation. Prefer manipulating the DOM with js scripts.
 
 ### ONLY
 
