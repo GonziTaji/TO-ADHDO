@@ -14,6 +14,6 @@ import (
 // Output: domain/catalog/resources/catalog.js
 func createResourceMappingFunction(domain string) func(resource_path string) string {
 	return func(resource_path string) string {
-		return path.Join(fmt.Sprintf("domain/%s/resources"), resource_path)
+		return path.Join(fmt.Sprintf("domain/%s/resources", domain), resource_path)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,7 @@ import (
 	"github.com/yogusita/to-adhdo/domain/tags"
 	"github.com/yogusita/to-adhdo/domain/wishlist"
 	"github.com/yogusita/to-adhdo/env"
+	"github.com/yogusita/to-adhdo/server/multitemplate"
 	_ "modernc.org/sqlite"
 )
 
@@ -50,7 +52,14 @@ func newRouter(db *sql.DB) *gin.Engine {
 
 	router.Use(setupSecurityHeaders)
 
-	router.HTMLRender = loadTemplates()
+	wl := multitemplate.CreateWebLoader(os.DirFS("."), multitemplate.DefaultWebConfig())
+	r, err := wl.Load()
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	router.HTMLRender = r
 
 	registerStaticRoutes(router)
 

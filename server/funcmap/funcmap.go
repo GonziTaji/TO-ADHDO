@@ -19,8 +19,6 @@ func CreateFuncMap() *TemplateFuncMaps {
 
 // It returns a funcmap with the `resource` function pointing to the proper domain URI
 func (t *TemplateFuncMaps) FuncMap(domain string) template.FuncMap {
-	fm := t.funcMap
-	fm["resource"] = 
-
+	// TODO: implement domain-specific resource function
 	return t.funcMap
 }
