@@ -1,0 +1,7 @@
+@import "./resets.css";
+@import "./variables.css";
+
+:root {
+    font-size: var(--font-size-base);
+    font-family: Arial, Helvetica, sans-serif;
+}

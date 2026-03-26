@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>{{ block "title" . }}{{ end }}</title>
+
+    <link href="/shared/static/common/styles/base.css" rel="stylesheet" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    {{ block "head" . }}{{end}}
+</head>
+
+<body>
+    <nav>
+        {{ template "nav" . }}
+    </nav>
+
+    <main>
+        {{ block "content" . }}{{ end }}
+    </main>
+
+</body>
+
+</html>

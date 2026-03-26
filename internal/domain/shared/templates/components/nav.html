@@ -1,0 +1,32 @@
+{{ block "head" }}
+<link href="/shared/static/components/nav.css" rel="stylesheet" />
+{{ end }}
+
+{{ define "nav" }}
+<nav id="main-nav">
+    <button class="menu-toggle-btn" popovertarget="main-menu-dialog">
+        Menu
+    </button>
+
+    <h1>{{ block "nav-title" . }}{{end}}</h1>
+</nav>
+
+<dialog class="menu-dialog" id="main-menu-dialog" popover>
+    <div class="menu">
+        <div class="header">
+            <span>Menu</span>
+            <button popovertarget="main-menu-dialog">&times;</button>
+        </div>
+
+        <hr />
+
+        <ul class="items">
+            <li><a href="/">Inicio</a></li>
+            <li><a href="/catalog">Mi catalogo</a></li>
+            <li><a href="/wishlist">Mis deseos</a></li>
+            <li><a href="/articles">Sobre mi</a></li>
+        </ul>
+    </div>
+</dialog>
+
+{{ end }}

@@ -1,0 +1,37 @@
+{{ define "title" }} Catalog {{ end }}
+
+{{ define "head" }}
+<script src="{{ resource " ./catalog.js" }}" type="module"></script>
+<link rel="stylesheet" href="{{ resource " ./catalog.css" }}">
+{{ end }}
+
+{{ define "nav-title" }}Catalog{{ end }}
+
+{{ define "content" }}
+<div id="articles-catalog">
+    <form id="filters-form">
+        <fieldset>
+            <legend>Search:</legend>
+            <input type="text" name="search" id="search" placeholder="Search" value="{{ .Options.SearchTerm }}" />
+            <button>Search</button>
+        </fieldset>
+
+        <fieldset>
+            <legend>Tags:</legend>
+            <div class="tags-options">
+                {{ range .Tags }}
+                <label for="tags-filter-{{.Id}}" class="tags-filter-label">
+                    <input type="checkbox" value="{{.Id}}" name="tags" id="tags-filter-{{.Id}}" {{ if .Selected }}
+                        checked {{ end }} />
+                    {{.Name}}
+                </label>
+
+                {{ end }}
+            </div>
+        </fieldset>
+    </form>
+
+    {{template "catalog-list" .Articles }}
+</div>
+
+{{ end }}
