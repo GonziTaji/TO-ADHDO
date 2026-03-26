@@ -1,5 +1,9 @@
 # TO-ADHDO
 
+## INACTIVE
+
+This is inactive and completely broken. I got burned out trying different ways to load the templates and their resources. Fun stuff. But I'm grabbing what I've learned and jumping ship to a different project
+
 ## Description
 
 This app pivoted from a glorified todo-list into a glorified shop or something lol.
